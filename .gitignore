@@ -1,0 +1,8 @@
+*.ex
+tmp_build_dir/
+*.eps
+plt*
+plt*/
+chk*
+Outputs*/
+Back*
