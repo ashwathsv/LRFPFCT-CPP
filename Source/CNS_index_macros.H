@@ -30,5 +30,6 @@
 #define QEINT  6
 #define QTEMP  7
 #define NPRIM  8
+#define NGROW  4
 
 #endif

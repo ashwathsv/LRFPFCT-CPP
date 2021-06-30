@@ -12,4 +12,8 @@ void cns_dervel (const amrex::Box& bx, amrex::FArrayBox& derfab, int dcomp, int 
                  const amrex::FArrayBox& datafab, const amrex::Geometry& geomdata,
                  amrex::Real time, const int* bcrec, int level);
 
+void cns_dermac (const amrex::Box& bx, amrex::FArrayBox& macfab, int dcomp, int ncomp,
+                 const amrex::FArrayBox& datfab, const amrex::Geometry& geomdata,
+                 amrex::Real time, const int* bcrec, int level);
+
 #endif

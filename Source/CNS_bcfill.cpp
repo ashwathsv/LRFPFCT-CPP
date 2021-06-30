@@ -3,82 +3,101 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_PhysBCFunct.H>
 
+#include "CNS.H"
+#include "cns_prob.H"
+
 using namespace amrex;
 
 struct CnsFillExtDir
 {
+    ProbParm const* lprobparm;
+
+    AMREX_GPU_HOST
+    constexpr explicit CnsFillExtDir(const ProbParm* d_prob_parm)
+        : lprobparm(d_prob_parm)
+    {
+    }
+
     AMREX_GPU_DEVICE
     void operator() (const IntVect& iv, Array4<Real> const& data,
                      const int /*dcomp*/, const int numcomp,
-                     GeometryData const& geom, const Real /*time*/,
+                     GeometryData const& geom, const Real time,
                      const BCRec* bcr, const int /*bcomp*/,
                      const int /*orig_comp*/) const
         {
             using namespace amrex;
-//             const Box& domain = geom.Domain();
 
-//             const auto domlo = amrex::lbound(domain);
-//             const auto domhi = amrex::ubound(domain);
+            const int* domlo = geom.Domain().loVect();
+            const int* domhi = geom.Domain().hiVect();
+            const amrex::Real* prob_lo = geom.ProbLo();
+            // const amrex::Real* prob_hi = geom.ProbHi();
+            const amrex::Real* dx = geom.CellSize();
+            const amrex::Real x[AMREX_SPACEDIM] = {AMREX_D_DECL(
+            prob_lo[0] + static_cast<amrex::Real>(iv[0] + 0.5) * dx[0],
+            prob_lo[1] + static_cast<amrex::Real>(iv[1] + 0.5) * dx[1],
+            prob_lo[2] + static_cast<amrex::Real>(iv[2] + 0.5) * dx[2])};
 
-//             const int ilo = domlo.x;
-//             const int ihi = domhi.x;
+            const int* bc = bcr->data();
 
-// #if AMREX_SPACEDIM >= 2
-//             const int jlo = domlo.y;
-//             const int jhi = domhi.y;
-// #if AMREX_SPACEDIM==2
-//             const int k = domlo.z;
-// #endif
-// #if AMREX_SPACEDIM==3
-//             const int k = iv[2];
-//             const int klo = domlo.z;
-//             const int khi = domhi.z;
-// #endif
-// #endif 
-//             const int i = iv[0];
-//             const int j = iv[1];
+            amrex::Real s_int[NGROW][NCONS] = {0.0};
+            amrex::Real s_ext[NCONS] = {0.0};
 
-//     for (int n = 0; n < numcomp; ++n){
-//         Array4<Real> q(data,n);
-//         BCRec const& bc = bcr[n];
-//         if (i < ilo) {
-//             // if (bc.lo(0) == BCType::int_dir) {
-//             //     q(i,j,k) = q(ihi+i+1,j,k);
-//             // }
-//         }
-//         if (i > ihi) {
-//             // if (bc.hi(0) == BCType::int_dir) {
-//             //     q(i,j,k) = q(ilo+ihi-i-1,j,k);
-//             // } 
-//         }
-// #if AMREX_SPACEDIM >= 2
-//         if (j < jlo) {
-//             if (bc.lo(1) == BCType::int_dir) {
-//                 q(i,j,k) = q(i,jhi+j+1,k);
-//             }          
-//         }
-
-//         if (iv[1] > jhi) {
-//             // if (bc.hi(1) == BCType::int_dir) {
-//             //     q(i,j,k) = q(i,jlo+jhi-j-1,k);
-//             // } 
-//         }
-
-// #if AMREX_SPACEDIM==3
-//         if (k < klo) {
-//             // if (bc.lo(2) == BCType::int_dir) {
-//             //     q(i,j,k) = q(i,j,)
-//             // }            
-//         }
-
-//         if (k > khi) {
-//             // if (bc.hi(2) == BCType::int_dir) {
-//             //     // Do nothing.
-//             // } 
-//         }
-// #endif
-// #endif              
-//     }           
+             // xlo and xhi
+            int idir = 0;
+            if ((bc[idir] == amrex::BCType::ext_dir) && (iv[idir] < domlo[idir])) {
+                for (int ng = 0; ng < NGROW; ++ng){
+                    amrex::IntVect loc(AMREX_D_DECL(domlo[idir]+ng, iv[1], iv[2]));
+                    for (int n = 0; n < NCONS; n++) {
+                        s_int[ng][n] = data(loc, n);
+                    }
+                }
+                cns_probspecific_bc(x, s_int, s_ext, idir, iv[idir], -1, time, geom, *lprobparm);
+                for (int n = 0; n < NCONS; n++) {
+                    data(iv, n) = s_ext[n];
+                }
+            } else if (
+              (bc[idir + AMREX_SPACEDIM] == amrex::BCType::ext_dir) &&
+              (iv[idir] > domhi[idir])) {
+                for(int ng = 0; ng < NGROW; ++ng){
+                    amrex::IntVect loc(AMREX_D_DECL(domhi[idir]-ng, iv[1], iv[2]));
+                    for (int n = 0; n < NCONS; n++) {
+                        s_int[ng][n] = data(loc, n);
+                    }                    
+                }
+                cns_probspecific_bc(x, s_int, s_ext, idir, iv[idir], 1, time, geom, *lprobparm);
+                for (int n = 0; n < NCONS; n++) {
+                    data(iv, n) = s_ext[n];
+                }
+            }
+#if AMREX_SPACEDIM > 1
+            // ylo and yhi
+            idir = 1;
+            if ((bc[idir] == amrex::BCType::ext_dir) && (iv[idir] < domlo[idir])) {
+                for(int ng = 0; ng < NGROW; ++ng){
+                    amrex::IntVect loc(AMREX_D_DECL(iv[0], domlo[idir]+ng, iv[2]));
+                    for (int n = 0; n < NCONS; n++) {
+                        s_int[ng][n] = data(loc, n);
+                    }
+                }
+                cns_probspecific_bc(x, s_int, s_ext, idir, iv[idir], -1, time, geom, *lprobparm);
+                for (int n = 0; n < NCONS; n++) {
+                    data(iv, n) = s_ext[n];
+                }
+            } else if (
+            (bc[idir + AMREX_SPACEDIM] == amrex::BCType::ext_dir) &&
+            (iv[idir] > domhi[idir])) {
+                for(int ng = 0; ng < NGROW; ++ng){
+                    amrex::IntVect loc(AMREX_D_DECL(iv[0], domhi[idir]-ng, iv[2]));
+                    for (int n = 0; n < NCONS; n++) {
+                        s_int[ng][n] = data(loc, n);
+                    }
+                }
+                cns_probspecific_bc(x, s_int, s_ext, idir, iv[idir], 1, time, geom, *lprobparm);
+                for (int n = 0; n < NCONS; n++) {
+                    data(iv, n) = s_ext[n];
+                }
+            }
+#endif          
         }
 };
 
@@ -93,66 +112,8 @@ void cns_bcfill (Box const& bx, FArrayBox& data,
                  const Vector<BCRec>& bcr, const int bcomp,
                  const int scomp)
 {
-    Print() << "entered cns_bcfill()\n";
-    GpuBndryFuncFab<CnsFillExtDir> gpu_bndry_func(CnsFillExtDir{});
+    // Print() << "entered cns_bcfill()\n";
+    const ProbParm* lprobparm = CNS::d_prob_parm;
+    GpuBndryFuncFab<CnsFillExtDir> gpu_bndry_func(CnsFillExtDir{lprobparm});
     gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
 }
-
-// // Function to fill physical domain boundary (fill ghost cells)
-// AMREX_FORCE_INLINE
-// void 
-// FillDomBoundary (amrex::MultiFab& phi, const amrex::Geometry& geom, 
-//                  const amrex::Vector<amrex::BCRec>& bc, amrex::Real cur_time)
-// {
-//     using namespace amrex;
-//     BL_PROFILE_VAR("FillDomainBoundary()", dombndry);
-//     // int myproc = ParallelDescriptor::MyProc();
-//     // Print(myproc) << "rank= " << myproc << ", entered LRFPFCT::FillDomainBoundary()" << "\n";
-//     if (geom.isAllPeriodic()) return;
-//     if (phi.nGrow() == 0) return;
-
-//     AMREX_ALWAYS_ASSERT(phi.ixType().cellCentered());
-
-//     // Print() << " entered FillDomBoundary() " << "\n";
-
-// #if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
-//     if (Gpu::inLaunchRegion())
-//     {
-// #endif  
-//         GpuBndryFuncFab<AmrCoreFill> gpu_bndry_func(AmrCoreFill{});
-//         PhysBCFunct<GpuBndryFuncFab<AmrCoreFill> > physbcf
-//             (geom, bc, gpu_bndry_func);
-//         physbcf(phi, 0, phi.nComp(), phi.nGrowVect(), cur_time, 0);
-//         // Print(myproc) << "rank= " << myproc << ", reached GpuBndryFuncFab()" << "\n";
-// #if !(defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA) && defined(AMREX_GPU_PRAGMA_NO_HOST))
-//     }
-//     else
-//     {
-//         CpuBndryFuncFab cpu_bndry_func(nullptr);;
-//         PhysBCFunct<CpuBndryFuncFab> physbcf(geom, bc, cpu_bndry_func);
-//         physbcf(phi, 0, phi.nComp(), phi.nGrowVect(), cur_time, 0);
-//         // Print(myproc) << "rank= " << myproc << ", reached CpuBndryFuncFab()" << "\n";
-//     }
-// #endif
-// }
-
-// void FillDomBoundary (MultiFab& phi, const Geometry& geom, const Vector<BCRec>& bc)
-// {
-//     if (phi.nGrow() == 0) return;
-
-//     AMREX_ALWAYS_ASSERT(phi.ixType().cellCentered());
-
-    // if (Gpu::inLaunchRegion())
-    // {
-        // GpuBndryFuncFab<CnsFillExtDir> gpu_bndry_func(CnsFillExtDir{});
-        // PhysBCFunct<GpuBndryFuncFab<dummy_gpu_fill_extdir> > physbcf
-        //     (geom, bc, gpu_bndry_func);
-        // physbcf(phi, 0, phi.nComp(), phi.nGrowVect(), 0.0, 0);
-    // }
-    // else
-    // {
-    //     CpuBndryFuncFab cpu_bndry_func(dummy_cpu_fill_extdir);;
-    //     PhysBCFunct<CpuBndryFuncFab> physbcf(geom, bc, cpu_bndry_func);
-    //     physbcf(phi, 0, phi.nComp(), phi.nGrowVect(), 0.0, 0);
-    // }
-// }

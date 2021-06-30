@@ -70,6 +70,7 @@ CNS::advance (Real time, Real dt, int /*iteration*/, int /*ncycle*/)
     if(Sborder.contains_nan() || Sborder.min(URHO,NUM_GROW) < Real(0.0) 
         || Sborder.min(UEDEN,NUM_GROW) < Real(0.0) || Sborder.min(UPRE,NUM_GROW) < Real(0.0)){
         Print() << "CNS::advance, after FillPatch(), lev = " << level << ", contains NaN() " << "\n";
+        Print() << "min(ueden) = " << Sborder.min(UEDEN,NUM_GROW) << ", min(pre) = " << Sborder.min(UPRE,NUM_GROW) << "\n";
         amrex::Error("NaN value found before RK1 advance, aborting...");
     }
 

@@ -152,4 +152,21 @@ cns_initdata_pureadv (int i, int j, int k, amrex::Array4<amrex::Real> const& sta
     
 }
 
+AMREX_GPU_DEVICE
+AMREX_FORCE_INLINE
+void
+cns_probspecific_bc(
+  const amrex::Real* /*x[AMREX_SPACEDIM]*/,
+  const amrex::Real s_int[NGROW][CCOMP],
+  amrex::Real s_ext[CCOMP],
+  const int /*idir*/,
+  const int /*ind*/,
+  const int /*sgn*/,
+  const amrex::Real /*time*/,
+  amrex::GeometryData const& /*geomdata*/,
+  ProbParm const& /*prob_parm*/)
+{
+
+}
+
 #endif

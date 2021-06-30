@@ -109,6 +109,8 @@ CNS::variableSetUp ()
 
     read_params();
 
+    Print() << "BCType::Ext_dir = " << amrex::BCType::ext_dir << "\n";
+
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
@@ -145,6 +147,13 @@ CNS::variableSetUp ()
 
     // DEFINE DERIVED QUANTITIES
 
+    derive_lst.add("mach",IndexType::TheCellType(),1,
+                   cns_dermac,the_same_box);
+    derive_lst.addComponent("mach",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("mach",desc_lst,State_Type,Xmom,1);
+    derive_lst.addComponent("mach",desc_lst,State_Type,Ymom,1);
+    derive_lst.addComponent("mach",desc_lst,State_Type,Pre,1);
+
     // Velocities
     derive_lst.add("x_velocity",IndexType::TheCellType(),1,
                    cns_dervel,the_same_box);
@@ -162,6 +171,8 @@ CNS::variableSetUp ()
     derive_lst.addComponent("z_velocity",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("z_velocity",desc_lst,State_Type,Zmom,1);
 #endif
+
+    Print() << "Finished setting up variables and called CNS::read_params() \n";
 }
 
 void

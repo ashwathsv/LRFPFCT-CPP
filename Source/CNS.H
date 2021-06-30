@@ -120,7 +120,7 @@ protected:
 
     void buildMetrics ();
 
-    amrex::Real estTimeStep ();
+    amrex::Real estTimeStep (int ng);
 
     // Compute initial time step.
     amrex::Real initialTimeStep ();

@@ -30,3 +30,18 @@ void cns_dervel (const Box& bx, FArrayBox& velfab, int dcomp, int /*ncomp*/,
         vel(i,j,k,dcomp) = dat(i,j,k,1)/dat(i,j,k,0);
     });
 }
+
+void cns_dermac (const Box& bx, FArrayBox& macfab, int dcomp, int /*ncomp*/,
+                  const FArrayBox& datfab, const Geometry& /*geomdata*/,
+                  Real /*time*/, const int* /*bcrec*/, int /*level*/)
+{
+    auto const dat = datfab.array();
+    auto       mac = macfab.array();
+    Parm const* parm = CNS::d_parm;
+    amrex::ParallelFor(bx,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+        Real velmod = std::sqrt( (dat(i,j,k,1)*dat(i,j,k,1) + dat(i,j,k,2)*dat(i,j,k,2)) )/dat(i,j,k,0);
+        mac(i,j,k,dcomp) = velmod/(std::sqrt(parm->eos_gamma*dat(i,j,k,3)/dat(i,j,k,0)));
+    });
+}

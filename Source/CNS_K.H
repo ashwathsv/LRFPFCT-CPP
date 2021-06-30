@@ -14,6 +14,7 @@ inline
 amrex::Real
 cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
+           int ng,
            Parm const& parm) noexcept
 {
     using amrex::Real;
@@ -26,9 +27,13 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
     Real dt = Real(1.e37);
 #endif
 
+#if AMREX_SPACEDIM==2
     for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
+#else
+    for         (int k = lo.z-ng; k <= hi.z+ng; ++k) {
+#endif    
+        for     (int j = lo.y-ng; j <= hi.y+ng; ++j) {
+            for (int i = lo.x-ng; i <= hi.x+ng; ++i) {
                 Real rho = state(i,j,k,URHO);
                 Real mx  = state(i,j,k,UMX);
                 Real my  = state(i,j,k,UMY);

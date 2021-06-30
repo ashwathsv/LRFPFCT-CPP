@@ -84,11 +84,13 @@ CNS::initData ()
     BL_PROFILE("CNS::initData()");
 
     const auto geomdata = geom.data();
+    const int* domlo = geom.Domain().loVect();
+    const int* domhi = geom.Domain().hiVect();
     MultiFab& S_new = get_new_data(State_Type);
 
     Parm const* lparm = d_parm;
     ProbParm const* lprobparm = d_prob_parm;
-    const int pure_adv = pure_advection;
+    // const int pure_adv = pure_advection;
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -98,19 +100,19 @@ CNS::initData ()
         const Box& box = mfi.validbox();
         auto sfab = S_new.array(mfi);
 
-        if(pure_adv == 0){
+        // if(pure_adv == 0){
             amrex::ParallelFor(amrex::grow(box,NUM_GROW),
             [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 cns_initdata(i, j, k, sfab, geomdata, *lparm, *lprobparm);
             });
-        }else{
-            amrex::ParallelFor(amrex::grow(box,NUM_GROW),
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                cns_initdata_pureadv(i, j, k, sfab, geomdata, *lparm, *lprobparm);
-            });
-        }
+        // }else{
+        //     amrex::ParallelFor(amrex::grow(box,NUM_GROW),
+        //     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        //     {
+        //         cns_initdata_pureadv(i, j, k, sfab, geomdata, *lparm, *lprobparm);
+        //     });
+        // }
         
     }
 
@@ -119,7 +121,13 @@ CNS::initData ()
         amrex::Error("NaN value found in initial conditions, aborting...");
     }
 
-    // 
+    FillPatch(*this,S_new,NUM_GROW,0.0,State_Type,0,NUM_STATE);
+
+    if(level == 0){
+        ProbParm* lpparm = d_prob_parm;
+        cns_probspecific_func(S_new, geomdata, *lpparm, 0, 0.0);
+    }
+    Print() << "max(pre) = " << S_new.max(UPRE,NUM_GROW) << ", max(rho) = " << S_new.max(URHO,NUM_GROW) << "\n";
 
     h_parm->minro = 1.e-4*S_new.min(URHO);
     h_parm->minp  = 1.e-4*S_new.min(UPRE);
@@ -169,7 +177,6 @@ CNS::computeInitialDt (int                    finest_level,
     {
         n_factor *= n_cycle[i];
         dt_level[i] = dt_0/n_factor;
-        // Print() << "level= " << i << ", dt= " << dt_level[i] << "\n";
     }
 }
 
@@ -193,7 +200,7 @@ CNS::computeNewDt (int                    finest_level,
 
     for (int i = 0; i <= finest_level; i++)
     {
-        dt_min[i] = getLevel(i).estTimeStep();
+        dt_min[i] = getLevel(i).estTimeStep(0);
     }
 
     if (post_regrid_flag == 1)
@@ -265,7 +272,7 @@ CNS::post_timestep (int /*iteration*/)
 
         CNS& fine_level = getLevel(level+1);
         fine_level.flux_reg->Reflux(S, Real(1.0), 0, 0, CCOMP, geom);
-        if(pure_advection == 0) computeTemp(S,0);
+        computeTemp(S,0);
 
         if(S.min(UEDEN,0) < 0.0 || S.min(URHO,0) < 0.0 || S.min(UPRE,0) < 0.0){
             Print() << "energy/pressure/density negative after reflux, lev = " << level << 
@@ -281,9 +288,16 @@ CNS::post_timestep (int /*iteration*/)
 }
 
 void
-CNS::postCoarseTimeStep (Real /*time*/)
+CNS::postCoarseTimeStep (Real time)
 {
     BL_PROFILE("postCoarseTimeStep()");
+
+    if(level == 0){
+        MultiFab& S = get_new_data(State_Type);
+        ProbParm* lpparm = d_prob_parm;
+        const auto geomdata = geom.data();
+        cns_probspecific_func(S, geomdata, *lpparm, 1, time);
+    }
 
     // This only computes sum on level 0
     if (verbose >= 2) {
@@ -506,12 +520,13 @@ CNS::buildMetrics ()
 }
 
 Real
-CNS::estTimeStep ()
+CNS::estTimeStep (int ng)
 {
     BL_PROFILE("CNS::estTimeStep()");
 
     const auto dx = geom.CellSizeArray();
     const MultiFab& S = get_new_data(State_Type);
+    const int ngrow = ng;
 
     Parm const* lparm = d_parm;
 #ifdef AMREX_USE_GPU
@@ -521,7 +536,7 @@ CNS::estTimeStep ()
     Real estdt = amrex::ReduceMin(S, 0,
     [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
     {
-        return cns_estdt(bx, fab, dx, *lparm);
+        return cns_estdt(bx, fab, dx, ngrow, *lparm);
     });
 
     estdt *= cfl;
@@ -533,7 +548,7 @@ CNS::estTimeStep ()
 Real
 CNS::initialTimeStep ()
 {
-    return estTimeStep();
+    return estTimeStep(NUM_GROW);
 }
 
 void
