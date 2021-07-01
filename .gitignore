@@ -7,3 +7,5 @@ chk*
 Outputs*/
 Back*
 *.txt
+*.Outputs*/*
+pres*
