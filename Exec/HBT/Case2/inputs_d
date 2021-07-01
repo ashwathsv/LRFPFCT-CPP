@@ -1,6 +1,6 @@
 amrex.fpe_trap_invalid=1
 
-max_step  = 10000
+max_step  = 100000
 stop_time = 0.1
 
 geometry.is_periodic = 0 0 1
@@ -16,26 +16,26 @@ amr.n_cell           =   256     32      32
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
-cns.lo_bc       =  1   1   0
-cns.hi_bc       =  3   3   0
+cns.lo_bc       =  1   3   0
+cns.hi_bc       =  1   3   0
 
-cns.cfl = 0.22  # cfl number for hyperbolic system
+cns.cfl = 0.05  # cfl number for hyperbolic system
 
 cns.v = 2
 amr.v = 1
 cns.refine_max_dengrad_lev 	= 10
-cns.diff1					= 0.97
+cns.diff1					= 0.94
 cns.pure_advection          = 0
 
 cns.refine_based_maxgrad 	= 1
 cns.grad_comp 				= 6
-cns.tagfrac					= 0.2
+cns.tagfrac					= 0.005
 
 # REFINEMENT / REGRIDDING 
-amr.max_level       = 3       # maximum level number allowed
+amr.max_level       = 2       # maximum level number allowed
 # 2 2
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
-amr.regrid_int      = 2 2 2 2 # how often to regrid
+amr.regrid_int      = 2 # how often to regrid
 amr.blocking_factor = 16
 amr.max_grid_size   = 1024
 amr.n_error_buf     = 2 # number of buffer cells in error est
@@ -43,32 +43,32 @@ amr.grid_eff        = 0.99     # what constitutes an efficient grid
 
 # CHECKPOINT FILES
 amr.checkpoint_files_output = 1
-amr.check_file              = OutputsL3C2d_256/chk    # root name of checkpoint file
-#amr.check_file              = OutputsL2C2d_512/chk    # root name of checkpoint file
-#amr.check_file              = OutputsL2C2d_1024/chk    # root name of checkpoint file
+amr.check_file              = Outputs_C2dL2M3_256/chk    # root name of checkpoint file
 amr.check_int               = -1    # number of timesteps between checkpoints
-#amr.restart                 = OutputsL2temp/chk00002000 
+#amr.restart                 = Outputs_C2dL2M3_256/chk015773 
 
 # PLOTFILES
 amr.plot_files_output = 1
 amr.file_name_digits  = 6
-amr.check_file               = OutputsL3C2d_256/chk    # root name of checkpoint file
-#amr.check_file              = OutputsL2C2d_512/chk    # root name of checkpoint file
-#amr.check_file              = OutputsL2C2d_1024/chk    # root name of checkpoint file
-amr.plot_int          = 100     # number of timesteps between plotfiles
+amr.plot_file         = Outputs_C2dL2M3_256/plt     # root name of plotfile
+amr.plot_int          = 1200     # number of timesteps between plotfiles
 amr.derive_plot_vars  = mach x_velocity y_velocity
 
 # problem specific parameter
-prob.Mach_shock = 2.0 
-# 2.5 3.0
-prob.Mach_in    = 0.5774
-# 0.513 0.4752 
+prob.Mach_shock = 3.0 
+# 2.0 2.5 3.0
+
+prob.Mach_in    = 0.4752
+# 0.5774 0.513 0.4752 
+
 prob.p_0   = 101300.00 
-prob.p_r   = 4.5
-# 7.125 10.33333333
+prob.p_r   = 10.33333333
+# 4.5 7.125 10.33333333
+
 prob.rho_0 = 1.20429
-prob.rho_r = 2.666666666667
-# 3.333333  3.8571
+prob.rho_r = 3.8571
+# 2.66666667 3.333333  3.8571
+
 prob.u_0   = 0.0
 #prob.u_r   = 1.0
 prob.v_0   = 0.0
@@ -76,14 +76,15 @@ prob.width = 0.2
 prob.out_width = 0.2
 prob.out_loend = 0.4625
 
-prob.pressure_file = pressuredataL3C2d_256.txt
-#prob.pressure_file = pressuredataL2C2d_512.txt
-#prob.pressure_file = pressuredataL2C2d_1024.txt
+prob.pressure_file = pressfiles/pressuredataC2dL2M3_256.txt
 
-prob.inflow_time = 0.0218
+prob.inflow_time = 0.0211
 # 0.02185 0.0211
+
 prob.iprobe    = 255
 # 511 1023
+
 prob.jprobe    = 15
 # 31 63
+
 prob.isout_lox = 0

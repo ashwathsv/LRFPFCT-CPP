@@ -50,7 +50,7 @@ cns_probspecific_func (amrex::MultiFab& State, amrex::GeometryData const& geomda
     const auto domhi = amrex::ubound(domain);
     const auto domlo = amrex::lbound(domain);
     int myproc = ParallelDescriptor::MyProc();
-    int tagproc = 0;
+    int tagproc = -1;
 
     Real probe_val[NCONS];
 
