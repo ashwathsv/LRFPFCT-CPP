@@ -146,12 +146,12 @@ protected:
     static constexpr int NUM_GROW = 4;
 #if AMREX_SPACEDIM==2
     enum StateVariable {
-        Density = 0, Xmom, Ymom, Eden, Eint, Temp, Pre,
+        Density = 0, Xmom, Ymom, Eden, Mfrac, Eint, Temp, Pre,
         NUM_STATE
     };
 #else
     enum StateVariable {
-        Density = 0, Xmom, Ymom, Zmom, Eden, Eint, Temp, Pre,
+        Density = 0, Xmom, Ymom, Zmom, Eden, Mfrac, Eint, Temp, Pre,
         NUM_STATE
     };
 #endif
@@ -173,6 +173,7 @@ protected:
     static amrex::Real cfl;
 
     static int do_reflux;
+    static int do_react;
 
     static int refine_max_dengrad_lev;
     static amrex::Real refine_gradlim;

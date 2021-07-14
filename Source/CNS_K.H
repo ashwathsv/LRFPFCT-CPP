@@ -68,6 +68,17 @@ cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& 
 {
     using amrex::Real;
 
+    Real ux = u(i,j,k,UMX)/u(i,j,k,URHO);
+    Real uy = u(i,j,k,UMY)/u(i,j,k,URHO);
+
+    // Correction for negative densities
+    
+    // if(u(i,j,k,URHO) < Real(0.0)){
+    //     u(i,j,k,URHO) = parm.minro;
+    //     u(i,j,k,UMX) = u(i,j,k,URHO)*ux;
+    //     u(i,j,k,UMY) = u(i,j,k,URHO)*uy;
+    // }
+
     Real rhoinv = Real(1.0)/u(i,j,k,URHO);
     Real mx = u(i,j,k,UMX);
     Real my = u(i,j,k,UMY);
@@ -81,6 +92,15 @@ cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& 
 #endif
     u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (Real(1.0)/parm.cv);
     u(i,j,k,UPRE)  = (parm.eos_gamma-1.0) * ( u(i,j,k,UEDEN) - kineng );
+
+    // Correction for negative pressures
+
+    // if(u(i,j,k,UPRE) < Real(0.0)){
+    //     u(i,j,k,UPRE)  = parm.minp;
+    //     u(i,j,k,UEINT) = u(i,j,k,UPRE)/(parm.eos_gamma-Real(1.0));
+    //     u(i,j,k,UEDEN) = u(i,j,k,UEINT) + kineng; 
+    //     u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (Real(1.0)/parm.cv);
+    // }
 }
 
 AMREX_GPU_HOST_DEVICE

@@ -28,6 +28,7 @@ Real      CNS::tagfrac                  = 0.0;
 Real      CNS::gravity = 0.0;
 Real      CNS::diff1   = 1.0;
 int       CNS::pure_advection = 0;
+int       CNS::do_react     = 0;
 
 CNS::CNS ()
 {}
@@ -129,7 +130,7 @@ CNS::initData ()
     }
     Print() << "max(pre) = " << S_new.max(UPRE,NUM_GROW) << ", max(rho) = " << S_new.max(URHO,NUM_GROW) << "\n";
 
-    h_parm->minro = 1.e-4*S_new.min(URHO);
+    h_parm->minro = 1.e-3*S_new.min(URHO);
     h_parm->minp  = 1.e-4*S_new.min(UPRE);
 
     amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_parm, h_parm+1,
@@ -261,7 +262,7 @@ CNS::post_regrid (int /*lbase*/, int /*new_finest*/)
 }
 
 void
-CNS::post_timestep (int /*iteration*/)
+CNS::post_timestep (int iteration)
 {
     BL_PROFILE("post_timestep");
 
@@ -278,7 +279,7 @@ CNS::post_timestep (int /*iteration*/)
             Print() << "energy/pressure/density negative after reflux, lev = " << level << 
             ", min(ro, roE, pre) = " << S.min(URHO,S.nGrow()) << ", " << S.min(UEDEN,S.nGrow()) 
             << ", " << S.min(UPRE,S.nGrow()) << "\n";
-            amrex::Error("negative value found in MultiFab, aborting...");
+            amrex::Error("negative value found in MultiFab, aborting from CNS::post_timestep()...");
         }
     }
 
@@ -321,15 +322,16 @@ CNS::printTotal () const
             ParallelDescriptor::ReduceRealSum(tot.data(), CCOMP, ParallelDescriptor::IOProcessorNumber());
             ParallelDescriptor::ReduceRealMin(romin, ParallelDescriptor::IOProcessorNumber());
             ParallelDescriptor::ReduceRealMin(pmin, ParallelDescriptor::IOProcessorNumber());
-            amrex::Print().SetPrecision(17) << "\n[CNS] Total mass       is " << tot[URHO] << "\n"
-                                            <<   "      Total x-momentum is " << tot[UMX] << "\n"
-                                            <<   "      Total y-momentum is " << tot[UMY] << "\n"
+            amrex::Print().SetPrecision(17) << "\n[CNS] Total mass          is " << tot[URHO] << "\n"
+                                            <<   "      Total x-momentum    is " << tot[UMX] << "\n"
+                                            <<   "      Total y-momentum    is " << tot[UMY] << "\n"
 #if AMREX_SPACEDIM==3
-                                            <<   "      Total z-momentum is " << tot[UMZ] << "\n"
+                                            <<   "      Total z-momentum    is " << tot[UMZ] << "\n"
 #endif
-                                            <<   "      Total energy     is " << tot[UEDEN] << "\n"
-                                            <<   "      Minimum density is  " << romin << "\n"
-                                            <<   "      Minimum pressure is  "<< pmin << "\n";
+                                            <<   "      Total energy        is " << tot[UEDEN] << "\n"
+                                            // <<   "      Total mass fraction is " << tot[URHOY] << "\n"
+                                            <<   "      Minimum density     is  " << romin << "\n"
+                                            <<   "      Minimum pressure    is  "<< pmin << "\n";
 #ifdef BL_LAZY
         });
 #endif
@@ -470,6 +472,7 @@ CNS::read_params ()
     }
 
     pp.query("do_reflux", do_reflux);
+    pp.query("do_react", do_react);
 
     pp.query("refine_max_dengrad_lev", refine_max_dengrad_lev);
     pp.query("refine_gradlim", refine_gradlim);

@@ -27,8 +27,13 @@ extern "C" {
 
         pp.get("pressure_file", CNS::h_prob_parm->pres_file);
 
-        Print() << "pres_file = " << CNS::h_prob_parm->pres_file << "\n";
- 
+        amrex::Real a1 = sqrt(CNS::h_prob_parm->gamma*CNS::h_prob_parm->p_0/CNS::h_prob_parm->rho_0);
+        CNS::h_prob_parm->sh_speed = CNS::h_prob_parm->Mach_shock*a1;
+
+        Print() << "sh_speed (w) = " << CNS::h_prob_parm->sh_speed
+                << ", u_0 = " << CNS::h_prob_parm->sh_speed*
+                ( Real(1.0) - (Real(1.0)/CNS::h_prob_parm->rho_r) )<< "\n";
+
 #ifdef AMREX_USE_GPU
         amrex::Gpu::htod_memcpy(CNS::d_prob_parm, CNS::h_prob_parm, sizeof(ProbParm));
 #else

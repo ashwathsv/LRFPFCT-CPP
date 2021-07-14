@@ -22,6 +22,7 @@ struct ProbParm
     amrex::Real inflow_time = 0.0;
     amrex::Real gamma = 1.4;
     amrex::Real Rsp = amrex::Real(287.058);
+    amrex::Real sh_speed = 0.0;
 
     std::string pres_file = "pressuredata.txt";
 };

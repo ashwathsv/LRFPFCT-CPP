@@ -128,6 +128,7 @@ CNS::variableSetUp ()
     cnt++; set_z_vel_bc(bc,phys_bc);  bcs[cnt] = bc; name[cnt] = "zmom";
 #endif
     cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "rho_E";
+    cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "rho_Y";
     cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "rho_e";
     cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "Temp";
     cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "Pre";
@@ -153,6 +154,11 @@ CNS::variableSetUp ()
     derive_lst.addComponent("mach",desc_lst,State_Type,Xmom,1);
     derive_lst.addComponent("mach",desc_lst,State_Type,Ymom,1);
     derive_lst.addComponent("mach",desc_lst,State_Type,Pre,1);
+
+    derive_lst.add("massfrac",IndexType::TheCellType(),1,
+                   cns_dermassfrac,the_same_box);
+    derive_lst.addComponent("massfrac",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("massfrac",desc_lst,State_Type,Mfrac,1);
 
     // Velocities
     derive_lst.add("x_velocity",IndexType::TheCellType(),1,

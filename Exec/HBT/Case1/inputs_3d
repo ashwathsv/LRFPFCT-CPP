@@ -1,24 +1,23 @@
 amrex.fpe_trap_invalid=1
 
-max_step  = 300000
-stop_time = 0.037
+max_step  = 1000
+stop_time = 0.0415
+#stop_time = 0.2074
 geometry.is_periodic = 0 0 1
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
 geometry.prob_lo     =   0.0     0.0     0.0
-geometry.prob_hi     =   9.0     1.125     1.0
+geometry.prob_hi     =   9.0     1.125     1.125
 amr.n_cell           =   256     32      32
-#amr.n_cell           =   512     64      32
-#amr.n_cell           =   1024     128      32
 
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
 # 0 = Interior           3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
-cns.lo_bc       =  1   3   0
-cns.hi_bc       =  3   3   0
+cns.lo_bc       =  1   3   3
+cns.hi_bc       =  3   3   3
 
-cns.cfl = 0.005  # cfl number for hyperbolic system
+cns.cfl = 0.01  # cfl number for hyperbolic system
 
 cns.v = 2
 amr.v = 1
@@ -27,7 +26,7 @@ cns.diff1					= 0.99
 cns.pure_advection          = 0
 
 cns.refine_based_maxgrad 	= 1
-cns.grad_comp 				= 7
+cns.grad_comp 				= 8
 cns.tagfrac					= 0.09
 
 # REFINEMENT / REGRIDDING 
@@ -43,18 +42,16 @@ amr.grid_eff        = 0.99     # what constitutes an efficient grid
 # CHECKPOINT FILES
 amr.checkpoint_files_output = 1
 
-amr.check_file              = Outputs_C1L2M3_temp/chk    # root name of checkpoint file
-#amr.check_file              = Outputs_C1L2M2_512/chk    # root name of checkpoint file
-#amr.check_file              = Outputs_C1L2M2_1024/chk    # root name of checkpoint file
+amr.check_file              = Outputs_C1L2M3_3D/chk    # root name of checkpoint file
 
 amr.check_int               = 2000    # number of timesteps between checkpoints
-amr.restart                 = Outputs_C1L2M3_temp/chk070329 
+#amr.restart                 = Outputs_C1L2M3_3D/chk070329 
 
 # PLOTFILES
 amr.plot_files_output = 1
 amr.file_name_digits  = 6
-amr.plot_file         = Outputs_C1L2M3_temp/plt     # root name of plotfile
-amr.plot_int          = 800     # number of timesteps between plotfiles
+amr.plot_file         = Outputs_C1L2M3_3D/plt     # root name of plotfile
+amr.plot_int          = 100     # number of timesteps between plotfiles
 amr.derive_plot_vars  = mach x_velocity y_velocity
 
 # problem specific parameter
@@ -73,16 +70,12 @@ prob.rho_r = 3.8571
 # 2.666666666667 3.333333  3.8571
 
 prob.u_0   = 0.0
-#prob.u_r   = 1.0
 prob.v_0   = 0.0
 #prob.v_r   = 1.0
 #prob.w_l   = 1.0
 #prob.w_r   = 1.0
 prob.width = 0.2
 
-prob.pressure_file = pressfiles/pressuredataC1L2M3_temp.txt
-#prob.pressure_file = Outputs_C1L2M2_512/pressuredataC1L2M2_512.txt
-#prob.pressure_file = Outputs_C1L2M2_1024/pressuredataC1L2M2_1024.txt
+prob.pressure_file = pressfiles/pressuredataC1L2M3_3D.txt
 
-prob.inflow_time = 0.0074
-# 0.0218 0.02185 0.0074
+prob.inflow_time = 0.0415

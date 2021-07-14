@@ -5,8 +5,8 @@ stop_time = 0.037
 geometry.is_periodic = 0 0 1
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
 geometry.prob_lo     =   0.0     0.0     0.0
-geometry.prob_hi     =   9.0     1.125     1.0
-amr.n_cell           =   256     32      32
+geometry.prob_hi     =   4.5     2.25     0.0
+amr.n_cell           =   128     64      32
 #amr.n_cell           =   512     64      32
 #amr.n_cell           =   1024     128      32
 
@@ -47,14 +47,14 @@ amr.check_file              = Outputs_C1L2M3_temp/chk    # root name of checkpoi
 #amr.check_file              = Outputs_C1L2M2_512/chk    # root name of checkpoint file
 #amr.check_file              = Outputs_C1L2M2_1024/chk    # root name of checkpoint file
 
-amr.check_int               = 2000    # number of timesteps between checkpoints
-amr.restart                 = Outputs_C1L2M3_temp/chk070329 
+amr.check_int               = 3000    # number of timesteps between checkpoints
+amr.restart                 = Outputs_C1L2M3_temp/chk084760 
 
 # PLOTFILES
 amr.plot_files_output = 1
 amr.file_name_digits  = 6
 amr.plot_file         = Outputs_C1L2M3_temp/plt     # root name of plotfile
-amr.plot_int          = 800     # number of timesteps between plotfiles
+amr.plot_int          = 600     # number of timesteps between plotfiles
 amr.derive_plot_vars  = mach x_velocity y_velocity
 
 # problem specific parameter
