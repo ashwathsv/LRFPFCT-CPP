@@ -25,6 +25,10 @@ cns.refine_max_dengrad_lev 	= 10
 cns.diff1					= 0.99
 cns.pure_advection          = 0
 
+cns.do_minp = 0
+cns.minrofrac				= 0.001
+cns.minpfrac				= 0.001
+
 cns.refine_based_maxgrad 	= 1
 cns.grad_comp 				= 8
 cns.tagfrac					= 0.09

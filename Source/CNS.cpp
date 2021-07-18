@@ -127,11 +127,12 @@ CNS::initData ()
     if(level == 0){
         ProbParm* lpparm = d_prob_parm;
         cns_probspecific_func(S_new, geomdata, *lpparm, 0, 0.0);
+        if(h_parm->do_minp == 1){
+            h_parm->minro = h_parm->minrofrac*S_new.min(URHO);
+            h_parm->minp  = h_parm->minpfrac*S_new.min(UPRE);
+        }
     }
     Print() << "max(pre) = " << S_new.max(UPRE,NUM_GROW) << ", max(rho) = " << S_new.max(URHO,NUM_GROW) << "\n";
-
-    h_parm->minro = 1.e-3*S_new.min(URHO);
-    h_parm->minp  = 1.e-4*S_new.min(UPRE);
 
     amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_parm, h_parm+1,
                          d_parm);
@@ -487,6 +488,15 @@ CNS::read_params ()
     pp.query("gravity", gravity);
 
     pp.query("eos_gamma", h_parm->eos_gamma);
+    // do_minp == 1 implies we set a minimum pressure and do not allow pressure/density to go negative 
+    // allows for using high cfl number but may reduce accuracy / result in few points with non-physical pressures
+    pp.query("do_minp", h_parm->do_minp);
+    if(h_parm->do_minp == 1) {
+        // read in the fractions for minimum pressure and density (these fractions are related to the minimum 
+        // pressure in the initial conditions at the coarsest level)
+        pp.query("minpfrac", h_parm->minpfrac);
+        pp.query("minrofrac", h_parm->minrofrac);
+    }
 
     h_parm->Initialize();
     amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_parm, h_parm+1, d_parm);

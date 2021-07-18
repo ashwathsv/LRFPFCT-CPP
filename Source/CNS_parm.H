@@ -22,6 +22,11 @@ struct Parm
 
     amrex::Real minro = 0.00001;
     amrex::Real minp  = 1000.0;
+
+    amrex::Real minrofrac = 1e-4;
+    amrex::Real minpfrac  = 1e-4;
+
+    int do_minp = 0;
     
     void Initialize ();
 };

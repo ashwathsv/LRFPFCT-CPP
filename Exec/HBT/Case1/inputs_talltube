@@ -1,6 +1,6 @@
 amrex.fpe_trap_invalid=1
 
-max_step  = 300000
+max_step  = 400000
 stop_time = 0.037
 geometry.is_periodic = 0 0 1
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
@@ -43,17 +43,17 @@ amr.grid_eff        = 0.99     # what constitutes an efficient grid
 # CHECKPOINT FILES
 amr.checkpoint_files_output = 1
 
-amr.check_file              = Outputs_C1L2M3_temp/chk    # root name of checkpoint file
+amr.check_file              = Outputs_C1L2M3_tall/chk    # root name of checkpoint file
 #amr.check_file              = Outputs_C1L2M2_512/chk    # root name of checkpoint file
 #amr.check_file              = Outputs_C1L2M2_1024/chk    # root name of checkpoint file
 
-amr.check_int               = 3000    # number of timesteps between checkpoints
-amr.restart                 = Outputs_C1L2M3_temp/chk084760 
+amr.check_int               = 20000    # number of timesteps between checkpoints
+amr.restart                 = Outputs_C1L2M3_tall/chk085003 
 
 # PLOTFILES
 amr.plot_files_output = 1
 amr.file_name_digits  = 6
-amr.plot_file         = Outputs_C1L2M3_temp/plt     # root name of plotfile
+amr.plot_file         = Outputs_C1L2M3_tall/plt     # root name of plotfile
 amr.plot_int          = 600     # number of timesteps between plotfiles
 amr.derive_plot_vars  = mach x_velocity y_velocity
 
