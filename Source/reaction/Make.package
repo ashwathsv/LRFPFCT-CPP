@@ -1,4 +1,4 @@
 
-CEXE_headers += CNS_hydro_$(DIM)D_K.H
+CEXE_headers += LRFPFCT_reaction_$(DIM)D_K.H
 
 

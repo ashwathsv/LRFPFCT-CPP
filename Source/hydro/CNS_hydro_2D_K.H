@@ -53,7 +53,8 @@ fct_diff_flux_x (int i, int j, int k,
                 amrex::Array4<amrex::Real> const& fldx,
                 amrex::Array4<amrex::Real const> const& uold,
                 amrex::Array4<amrex::Real const> const& ubord,
-                amrex::Real dxinv, amrex::Real dt) noexcept
+                amrex::Real dxinv, amrex::Real dt,
+                const int conscomp) noexcept
 {
     using amrex::Real;
 
@@ -62,7 +63,7 @@ fct_diff_flux_x (int i, int j, int k,
     Real epsx = dt*dxinv*ux;
     // Real nuxx = Real(1.0/12.0) + (Real(1.0/3.0)*epsx*epsx); 
     Real nuxx = Real(1.0/6.0) + (Real(1.0/3.0)*epsx*epsx); 
-    for(int n = URHO; n <= UEDEN; ++n){
+    for(int n = URHO; n < conscomp; ++n){
         fldx(i,j,k,n)  = nuxx*(uold(i-1,j,k,n) - uold(i,j,k,n));
     }
 }
@@ -74,7 +75,8 @@ fct_diff_flux_y (int i, int j, int k,
                 amrex::Array4<amrex::Real> const& fldy,
                 amrex::Array4<amrex::Real const> const& uold,
                 amrex::Array4<amrex::Real const> const& ubord,
-                amrex::Real dyinv, amrex::Real dt) noexcept
+                amrex::Real dyinv, amrex::Real dt,
+                const int conscomp) noexcept
 {
     using amrex::Real;
 
@@ -83,7 +85,7 @@ fct_diff_flux_y (int i, int j, int k,
     Real epsy = dt*dyinv*uy;
     // Real nuyy = Real(1.0/12.0) + (Real(1.0/3.0)*epsy*epsy); 
     Real nuyy = Real(1.0/6.0) + (Real(1.0/3.0)*epsy*epsy); 
-    for(int n = URHO; n <= UEDEN; ++n){
+    for(int n = URHO; n < conscomp; ++n){
         fldy(i,j,k,n) = nuyy*( uold(i,j-1,k,n) - uold(i,j,k,n) );
     }
 }
@@ -96,7 +98,8 @@ fct_ad_flux_x (int i, int j, int k,
                 amrex::Array4<amrex::Real const> const& uold,
                 amrex::Array4<amrex::Real const> const& ubord,
                 amrex::Array4<amrex::Real> const& ucx,
-                amrex::Real dxinv, amrex::Real dt, amrex::Real diff1) noexcept
+                amrex::Real dxinv, amrex::Real dt, amrex::Real diff1,
+                const int conscomp) noexcept
 {
     using amrex::Real;
 
@@ -112,7 +115,7 @@ fct_ad_flux_x (int i, int j, int k,
               + Real(2.0)*uold(i,j,k,UMY)/uold(i,j,k,URHO)
               + uold(i,j+1,k,UMY)/uold(i,j+1,k,URHO) );
     Real muxy = -Real(0.5)*epsx*epsy;
-    for(int n = URHO; n <= UEDEN; ++n){
+    for(int n = URHO; n < conscomp; ++n){
         flax(i,j,k,n) = diff1*(muxx*(ucx(i,j,k,n) -  ucx(i-1,j,k,n)) 
                       + Real(0.25)*muxy*( ucx(i-1,j,k,n)+ucx(i,j,k,n)+ucx(i-1,j+1,k,n)+ucx(i,j+1,k,n)
                       - ucx(i-1,j-1,k,n)- ucx(i,j-1,k,n)-ucx(i-1,j,k,n)-ucx(i,j,k,n) ));
@@ -127,7 +130,8 @@ fct_ad_flux_y (int i, int j, int k,
                 amrex::Array4<amrex::Real const> const& uold,
                 amrex::Array4<amrex::Real const> const& ubord,
                 amrex::Array4<amrex::Real> const& ucy,
-                amrex::Real dyinv, amrex::Real dt, amrex::Real diff1) noexcept
+                amrex::Real dyinv, amrex::Real dt, amrex::Real diff1,
+                const int conscomp) noexcept
 {
     using amrex::Real;
 
@@ -143,7 +147,7 @@ fct_ad_flux_y (int i, int j, int k,
               + Real(2.0)*uold(i,j,k,UMY)/uold(i,j,k,URHO)
               + uold(i+1,j,k,UMY)/uold(i+1,j,k,URHO) );
     Real muxy = -Real(0.5)*epsx*epsy; 
-    for(int n = URHO; n <= UEDEN; ++n){
+    for(int n = URHO; n < conscomp; ++n){
         flay(i,j,k,n) = diff1*(muyy*(ucy(i,j,k,n) -  ucy(i,j-1,k,n)) 
                       + Real(0.25)*muxy*( ucy(i,j-1,k,n)+ucy(i+1,j-1,k,n)+ucy(i+1,j,k,n)+ucy(i,j,k,n)
                       - ucy(i,j-1,k,n)-ucy(i-1,j-1,k,n)-ucy(i-1,j+1,k,n)-ucy(i,j,k,n) ));

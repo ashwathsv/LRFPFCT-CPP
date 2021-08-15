@@ -2,6 +2,7 @@
 #define CNS_H_
 
 #include <CNS_parm.H>
+#include <LRFPFCT_EOS_parm.H>
 #include <cns_prob_parm.H>
 #include <AMReX_AmrLevel.H>
 #include <AMReX_FluxRegister.H>
@@ -114,6 +115,8 @@ protected:
 
     static void read_params ();
 
+    static void read_eos_params (int do_react);
+
     CNS& getLevel (int lev) { return dynamic_cast<CNS&>(parent->getLevel(lev)); }
 
     void avgDown ();
@@ -182,15 +185,14 @@ protected:
     static int grad_comp;
     static amrex::Real tagfrac;
 
-    static int actually_2d;
-    static int pure_advection;
-
     static amrex::Real gravity;
     static amrex::Real diff1;
 
 public:
     static Parm* h_parm;
     static Parm* d_parm;
+    static EOSParm* h_eos_parm;
+    static EOSParm* d_eos_parm;
     static ProbParm* h_prob_parm;
     static ProbParm* d_prob_parm;
 };

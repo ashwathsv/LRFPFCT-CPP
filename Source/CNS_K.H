@@ -15,7 +15,7 @@ amrex::Real
 cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
            int ng,
-           Parm const& parm) noexcept
+           Parm const& parm, EOSParm const& eos_parm) noexcept
 {
     using amrex::Real;
 
@@ -41,7 +41,10 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
                 Real vx = mx*rhoinv;
                 Real vy = my*rhoinv;
                 Real p = state(i,j,k,UPRE);
-                Real cs = std::sqrt(parm.eos_gamma*p*rhoinv);
+                // Print() << "ind = (" << i << "," << j << "," << k 
+                //         << "), gma = " << eos_parm.eos_gamma 
+                //         << ", p = " << p << ", rhoinv = " << rhoinv << "\n";
+                Real cs = std::sqrt(eos_parm.eos_gamma*p*rhoinv);
                 Real dtx = dx[0]/(amrex::Math::abs(vx)+cs);
                 Real dty = dx[1]/(amrex::Math::abs(vy)+cs);
 #if AMREX_SPACEDIM==2
@@ -64,7 +67,7 @@ AMREX_GPU_DEVICE
 inline
 void
 cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& u,
-                         Parm const& parm) noexcept
+                         Parm const& parm, EOSParm const& eos_parm) noexcept
 {
     using amrex::Real;
 
@@ -73,7 +76,7 @@ cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& 
 
     // Correction for negative densities
     
-    if(u(i,j,k,URHO) < Real(0.0) && parm.do_minp == 1){
+    if(u(i,j,k,URHO) < parm.minro && parm.do_minp == 1){
         u(i,j,k,URHO) = parm.minro;
         u(i,j,k,UMX) = u(i,j,k,URHO)*ux;
         u(i,j,k,UMY) = u(i,j,k,URHO)*uy;
@@ -90,16 +93,16 @@ cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& 
     Real kineng = Real(0.5) * rhoinv * (mx*mx+my*my+mz*mz);
     u(i,j,k,UEINT) = u(i,j,k,UEDEN) - Real(0.5) * rhoinv * (mx*mx+my*my+mz*mz);
 #endif
-    u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (Real(1.0)/parm.cv);
-    u(i,j,k,UPRE)  = (parm.eos_gamma-1.0) * ( u(i,j,k,UEDEN) - kineng );
+    u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (Real(1.0)/eos_parm.cv);
+    u(i,j,k,UPRE)  = (eos_parm.eos_gamma-1.0) * ( u(i,j,k,UEDEN) - kineng );
 
     // Correction for negative pressures
 
-    if(u(i,j,k,UPRE) < Real(0.0) && parm.do_minp == 1){
+    if(u(i,j,k,UPRE) < parm.minp && parm.do_minp == 1){
         u(i,j,k,UPRE)  = parm.minp;
-        u(i,j,k,UEINT) = u(i,j,k,UPRE)/(parm.eos_gamma-Real(1.0));
+        u(i,j,k,UEINT) = u(i,j,k,UPRE)/(eos_parm.eos_gamma-Real(1.0));
         u(i,j,k,UEDEN) = u(i,j,k,UEINT) + kineng; 
-        u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (Real(1.0)/parm.cv);
+        u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (Real(1.0)/eos_parm.cv);
     }
 }
 

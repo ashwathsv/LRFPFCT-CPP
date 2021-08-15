@@ -24,7 +24,6 @@ fct_con_flux_x (int i, int j, int k,
     flcx(i,j,k,UMY)  = ux*Real(0.5)*( uold(i-1,j,k,UMY) + uold(i,j,k,UMY) );
     flcx(i,j,k,UMZ)  = ux*Real(0.5)*( uold(i-1,j,k,UMZ) + uold(i,j,k,UMZ) );
     flcx(i,j,k,UEDEN) = ux*( pint + Real(0.5)*( uold(i-1,j,k,UEDEN) + uold(i,j,k,UEDEN)));
-    // flcx(i,j,k,URHOY) = ux*Real(0.5)*(uold(i-1,j,k,URHOY) + uold(i,j,k,URHOY));
 }
 
 AMREX_GPU_DEVICE
@@ -45,7 +44,6 @@ fct_con_flux_y (int i, int j, int k,
     flcy(i,j,k,UMY)  = ( pint + uy*Real(0.5)*(uold(i,j-1,k,UMY) + uold(i,j,k,UMY)) );
     flcy(i,j,k,UMZ) = uy*Real(0.5)*( uold(i,j-1,k,UMZ) + uold(i,j,k,UMZ) );
     flcy(i,j,k,UEDEN) = uy*( pint + Real(0.5)*( uold(i,j-1,k,UEDEN) + uold(i,j,k,UEDEN)));
-    // flcy(i,j,k,URHOY)  = uy*Real(0.5)*( uold(i,j-1,k,URHOY) + uold(i,j,k,URHOY) );
 }
 
 AMREX_GPU_DEVICE
@@ -66,7 +64,6 @@ fct_con_flux_z (int i, int j, int k,
     flcz(i,j,k,UMY)   = uz*Real(0.5)*( uold(i,j,k-1,UMY) + uold(i,j,k,UMY) );
     flcz(i,j,k,UMZ)   = ( pint + uz*Real(0.5)*(uold(i,j,k-1,UMZ) + uold(i,j,k,UMZ)) );
     flcz(i,j,k,UEDEN) = uz*( pint + Real(0.5)*( uold(i,j,k-1,UEDEN) + uold(i,j,k,UEDEN)));
-    // flcy(i,j,k,URHOY)  = uy*Real(0.5)*( uold(i,j-1,k,URHOY) + uold(i,j,k,URHOY) );
 }
 
 AMREX_GPU_DEVICE
@@ -76,7 +73,8 @@ fct_diff_flux_x (int i, int j, int k,
                 amrex::Array4<amrex::Real> const& fldx,
                 amrex::Array4<amrex::Real const> const& uold,
                 amrex::Array4<amrex::Real const> const& /*ubord*/,
-                amrex::Real dxinv, amrex::Real dt) noexcept
+                amrex::Real dxinv, amrex::Real dt,
+                const int conscomp) noexcept
 {
     using amrex::Real;
 
@@ -84,13 +82,9 @@ fct_diff_flux_x (int i, int j, int k,
             + uold(i,j,k,UMX)/uold(i,j,k,URHO));
     Real epsx = dt*dxinv*ux;
     Real nuxx = Real(1.0/12.0) + (Real(1.0/3.0)*epsx*epsx); 
-    for(int n = URHO ; n <= UEDEN; ++n){
+    for(int n = URHO ; n < conscomp; ++n){
         fldx(i,j,k,n) = nuxx*(uold(i-1,j,k,n) - uold(i,j,k,n));
     }
-    // fldx(i,j,k,UMX)  = nuxx*(uold(i-1,j,k,UMX)  - uold(i,j,k,UMX));
-    // fldx(i,j,k,UMY)  = nuxx*(uold(i-1,j,k,UMY)  - uold(i,j,k,UMY));
-    // fldx(i,j,k,UMZ)  = nuxx*(uold(i-1,j,k,UMZ) - uold(i,j,k,UMZ));
-    // fldx(i,j,k,UEDEN) = nuxx*(uold(i-1,j,k,UEDEN) - uold(i,j,k,UEDEN));
 }
 
 AMREX_GPU_DEVICE
@@ -100,7 +94,8 @@ fct_diff_flux_y (int i, int j, int k,
                 amrex::Array4<amrex::Real> const& fldy,
                 amrex::Array4<amrex::Real const> const& uold,
                 amrex::Array4<amrex::Real const> const& /*ubord*/,
-                amrex::Real dyinv, amrex::Real dt) noexcept
+                amrex::Real dyinv, amrex::Real dt,
+                const int conscomp) noexcept
 {
     using amrex::Real;
 
@@ -108,7 +103,7 @@ fct_diff_flux_y (int i, int j, int k,
             + uold(i,j,k,UMY)/uold(i,j,k,URHO));
     Real epsy = dt*dyinv*uy;
     Real nuyy = Real(1.0/12.0) + (Real(1.0/3.0)*epsy*epsy); 
-    for(int n = URHO; n <= UEDEN; ++n){
+    for(int n = URHO; n < conscomp; ++n){
         fldy(i,j,k,n) = nuyy*( uold(i,j-1,k,n) - uold(i,j,k,n) );
     }
 }
@@ -120,7 +115,8 @@ fct_diff_flux_z (int i, int j, int k,
                 amrex::Array4<amrex::Real> const& fldz,
                 amrex::Array4<amrex::Real const> const& uold,
                 amrex::Array4<amrex::Real const> const& /*ubord*/,
-                amrex::Real dzinv, amrex::Real dt) noexcept
+                amrex::Real dzinv, amrex::Real dt,
+                const int conscomp) noexcept
 {
     using amrex::Real;
 
@@ -128,7 +124,7 @@ fct_diff_flux_z (int i, int j, int k,
             + uold(i,j,k,UMZ)/uold(i,j,k,URHO));
     Real epsz = dt*dzinv*uz;
     Real nuzz = Real(1.0/12.0) + (Real(1.0/3.0)*epsz*epsz); 
-    for(int n = URHO; n <= UEDEN; ++n){
+    for(int n = URHO; n < conscomp; ++n){
         fldz(i,j,k,n)  = nuzz*( uold(i,j,k-1,n) - uold(i,j,k,n) );
     }
 }
@@ -142,7 +138,8 @@ fct_ad_flux_x (int i, int j, int k,
                 amrex::Array4<amrex::Real const> const& /*ubord*/,
                 amrex::Array4<amrex::Real> const& ucx,
                 amrex::Real dxinv, amrex::Real dt,
-                amrex::Real diff1) noexcept
+                amrex::Real diff1,
+                const int conscomp) noexcept
 {
     using amrex::Real;
 
@@ -150,7 +147,7 @@ fct_ad_flux_x (int i, int j, int k,
             + uold(i,j,k,UMX)/uold(i,j,k,URHO));
     Real epsx = dt*dxinv*ux;
     Real muxx = (Real(1.0/6.0) - (Real(1.0/6.0)*epsx*epsx)); 
-    for(int n = URHO; n <= UEDEN; ++n){
+    for(int n = URHO; n < conscomp; ++n){
         flax(i,j,k,n) = diff1*(muxx*(ucx(i,j,k,n) -  ucx(i-1,j,k,n)) 
                          - Real(1.0/12.0)*(uold(i,j,k,n) - uold(i-1,j,k,n)));        
     }
@@ -167,7 +164,8 @@ fct_ad_flux_y (int i, int j, int k,
                 amrex::Array4<amrex::Real const> const& /*ubord*/,
                 amrex::Array4<amrex::Real> const& ucy,
                 amrex::Real dyinv, amrex::Real dt,
-                amrex::Real diff1) noexcept
+                amrex::Real diff1,
+                const int conscomp) noexcept
 {
     using amrex::Real;
 
@@ -175,7 +173,7 @@ fct_ad_flux_y (int i, int j, int k,
             + uold(i,j,k,UMY)/uold(i,j,k,URHO));
     Real epsy = dt*dyinv*uy;
     Real muyy = (Real(1.0/6.0) - (Real(1.0/6.0)*epsy*epsy)); 
-    for(int n = URHO; n <= UEDEN; ++n){
+    for(int n = URHO; n < conscomp; ++n){
         flay(i,j,k,n) = diff1*(muyy*(ucy(i,j,k,n) -  ucy(i,j-1,k,n)) 
                           - Real(1.0/12.0)*(uold(i,j,k,n) - uold(i,j-1,k,n)));
     }
@@ -192,7 +190,8 @@ fct_ad_flux_z (int i, int j, int k,
                 amrex::Array4<amrex::Real const> const& /*ubord*/,
                 amrex::Array4<amrex::Real> const& ucz,
                 amrex::Real dzinv, amrex::Real dt,
-                amrex::Real diff1) noexcept
+                amrex::Real diff1,
+                const int conscomp) noexcept
 {
     using amrex::Real;
 
@@ -200,7 +199,7 @@ fct_ad_flux_z (int i, int j, int k,
             + uold(i,j,k,UMZ)/uold(i,j,k,URHO));
     Real epsz = dt*dzinv*uz;
     Real muzz = (Real(1.0/6.0) - (Real(1.0/6.0)*epsz*epsz)); 
-    for(int n = URHO; n <= UEDEN; ++n){
+    for(int n = URHO; n < conscomp; ++n){
         flaz(i,j,k,n) = diff1*(muzz*(ucz(i,j,k,n) -  ucz(i,j,k-1,n)) 
                       - Real(1.0/12.0)*(uold(i,j,k,n) - uold(i,j,k-1,n)));        
     }    

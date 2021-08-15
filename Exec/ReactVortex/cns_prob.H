@@ -99,7 +99,7 @@ cns_probspecific_bc(
 
 }
 
-AMREX_GPU_DEVICE
+AMREX_GPU_HOST_DEVICE
 inline
 void
 cns_probspecific_func (amrex::MultiFab& State, amrex::GeometryData const& geomdata, ProbParm& prob_parm,

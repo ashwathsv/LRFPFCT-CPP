@@ -7,6 +7,8 @@ using namespace amrex;
 int CNS::num_state_data_types = NUM_STATE_DATA_TYPE;
 Parm* CNS::h_parm = nullptr;
 Parm* CNS::d_parm = nullptr;
+EOSParm* CNS::h_eos_parm = nullptr;
+EOSParm* CNS::d_eos_parm = nullptr;
 ProbParm* CNS::h_prob_parm = nullptr;
 ProbParm* CNS::d_prob_parm = nullptr;
 
@@ -103,8 +105,10 @@ void
 CNS::variableSetUp ()
 {
     h_parm = new Parm{}; // This is deleted in CNS::variableCleanUp().
+    h_eos_parm = new EOSParm{};
     h_prob_parm = new ProbParm{};
     d_parm = (Parm*)The_Arena()->alloc(sizeof(Parm));
+    d_eos_parm = (EOSParm*)The_Arena()->alloc(sizeof(EOSParm));
     d_prob_parm = (ProbParm*)The_Arena()->alloc(sizeof(ProbParm));
 
     read_params();
@@ -185,8 +189,10 @@ void
 CNS::variableCleanUp ()
 {
     delete h_parm;
+    delete h_eos_parm;
     delete h_prob_parm;
     The_Arena()->free(d_parm);
+    The_Arena()->free(d_eos_parm);
     The_Arena()->free(d_prob_parm);
     desc_lst.clear();
     derive_lst.clear();

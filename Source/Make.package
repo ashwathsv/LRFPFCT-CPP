@@ -6,3 +6,6 @@ CEXE_sources += CNS_advance.cpp CNS.cpp CNSBld.cpp CNS_io.cpp CNS_setup.cpp CNS_
 
 CEXE_headers += CNS_parm.H
 CEXE_sources += CNS_parm.cpp
+
+CEXE_headers += LRFPFCT_EOS_parm.H
+CEXE_sources += LRFPFCT_EOS_parm.cpp

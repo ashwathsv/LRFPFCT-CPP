@@ -3,7 +3,7 @@ TOP := $(HOME)/LRFPFCT-CPP
 
 EBASE := CNS
 
-DIM := 3
+DIM := 2
 
 LAZY := TRUE
 
@@ -25,6 +25,10 @@ VPATH_LOCATIONS   += $(TOP)/Source/hydro
 include $(TOP)/Source/diffusion/Make.package
 INCLUDE_LOCATIONS += $(TOP)/Source/diffusion
 VPATH_LOCATIONS   += $(TOP)/Source/diffusion
+
+include $(TOP)/Source/reaction/Make.package
+INCLUDE_LOCATIONS += $(TOP)/Source/reaction
+VPATH_LOCATIONS   += $(TOP)/Source/reaction
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package

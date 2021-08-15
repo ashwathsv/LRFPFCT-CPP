@@ -3,6 +3,7 @@
 #include <CNS_K.H>
 #include <CNS_tagging.H>
 #include <CNS_parm.H>
+#include <LRFPFCT_EOS_parm.H>
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
@@ -15,20 +16,19 @@ constexpr int CNS::NUM_GROW;
 
 BCRec     CNS::phys_bc;
 
-int       CNS::verbose = 0;
+int       CNS::verbose                  = 0;
 IntVect   CNS::hydro_tile_size {AMREX_D_DECL(1024,16,16)};
-Real      CNS::cfl       = 0.3;
-int       CNS::do_reflux = 1;
+Real      CNS::cfl                      = 0.3;
+int       CNS::do_reflux                = 1;
 int       CNS::refine_max_dengrad_lev   = -1;
 Real      CNS::refine_gradlim           = 1.0e10;
 int       CNS::refine_based_maxgrad     = -1; 
 int       CNS::grad_comp                = -1;
 Real      CNS::tagfrac                  = 0.0;
 
-Real      CNS::gravity = 0.0;
-Real      CNS::diff1   = 1.0;
-int       CNS::pure_advection = 0;
-int       CNS::do_react     = 0;
+Real      CNS::gravity                  = 0.0;
+Real      CNS::diff1                    = 1.0;
+int       CNS::do_react                 = 0;
 
 CNS::CNS ()
 {}
@@ -90,8 +90,8 @@ CNS::initData ()
     MultiFab& S_new = get_new_data(State_Type);
 
     Parm const* lparm = d_parm;
+    EOSParm const* leosparm = d_eos_parm;
     ProbParm const* lprobparm = d_prob_parm;
-    // const int pure_adv = pure_advection;
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -101,19 +101,11 @@ CNS::initData ()
         const Box& box = mfi.validbox();
         auto sfab = S_new.array(mfi);
 
-        // if(pure_adv == 0){
-            amrex::ParallelFor(amrex::grow(box,NUM_GROW),
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                cns_initdata(i, j, k, sfab, geomdata, *lparm, *lprobparm);
-            });
-        // }else{
-        //     amrex::ParallelFor(amrex::grow(box,NUM_GROW),
-        //     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        //     {
-        //         cns_initdata_pureadv(i, j, k, sfab, geomdata, *lparm, *lprobparm);
-        //     });
-        // }
+        amrex::ParallelFor(amrex::grow(box,NUM_GROW),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            cns_initdata(i, j, k, sfab, geomdata, *lparm, *leosparm, *lprobparm);
+        });
         
     }
 
@@ -131,12 +123,9 @@ CNS::initData ()
             h_parm->minro = h_parm->minrofrac*S_new.min(URHO);
             h_parm->minp  = h_parm->minpfrac*S_new.min(UPRE);
         }
+        amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_parm, h_parm+1, d_parm);
     }
     Print() << "max(pre) = " << S_new.max(UPRE,NUM_GROW) << ", max(rho) = " << S_new.max(URHO,NUM_GROW) << "\n";
-
-    amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_parm, h_parm+1,
-                         d_parm);
-
 
 }
 
@@ -273,7 +262,10 @@ CNS::post_timestep (int iteration)
         const Real* dx = geom.CellSize();
 
         CNS& fine_level = getLevel(level+1);
-        fine_level.flux_reg->Reflux(S, Real(1.0), 0, 0, CCOMP, geom);
+        int conscomp = CCOMP;
+        if(do_react == 1) conscomp = conscomp + 1;
+
+        fine_level.flux_reg->Reflux(S, Real(1.0), 0, 0, conscomp, geom);
         computeTemp(S,0);
 
         if(S.min(UEDEN,0) < 0.0 || S.min(URHO,0) < 0.0 || S.min(UPRE,0) < 0.0){
@@ -311,8 +303,9 @@ void
 CNS::printTotal () const
 {
     const MultiFab& S_new = get_new_data(State_Type);
-    std::array<Real,CCOMP> tot;
-    for (int comp = URHO; comp < CCOMP; ++comp) {
+
+    std::array<Real,CCOMP+1> tot;
+    for (int comp = URHO; comp <= URHOY; ++comp) {
         tot[comp] = S_new.sum(comp,true) * geom.ProbSize();
     }
     Real romin = S_new.min(URHO,0);
@@ -320,7 +313,7 @@ CNS::printTotal () const
 #ifdef BL_LAZY
     Lazy::QueueReduction( [=] () mutable {
 #endif
-            ParallelDescriptor::ReduceRealSum(tot.data(), CCOMP, ParallelDescriptor::IOProcessorNumber());
+            ParallelDescriptor::ReduceRealSum(tot.data(), CCOMP+1, ParallelDescriptor::IOProcessorNumber());
             ParallelDescriptor::ReduceRealMin(romin, ParallelDescriptor::IOProcessorNumber());
             ParallelDescriptor::ReduceRealMin(pmin, ParallelDescriptor::IOProcessorNumber());
             amrex::Print().SetPrecision(17) << "\n[CNS] Total mass          is " << tot[URHO] << "\n"
@@ -330,7 +323,7 @@ CNS::printTotal () const
                                             <<   "      Total z-momentum    is " << tot[UMZ] << "\n"
 #endif
                                             <<   "      Total energy        is " << tot[UEDEN] << "\n"
-                                            // <<   "      Total mass fraction is " << tot[URHOY] << "\n"
+                                            <<   "      Total mass fraction is " << tot[URHOY] << "\n"
                                             <<   "      Minimum density     is  " << romin << "\n"
                                             <<   "      Minimum pressure    is  "<< pmin << "\n";
 #ifdef BL_LAZY
@@ -443,9 +436,6 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
                 });
             }            
         }
-
-
-
     }
 }
 
@@ -479,7 +469,6 @@ CNS::read_params ()
     pp.query("refine_gradlim", refine_gradlim);
     pp.query("refine_based_maxgrad", refine_based_maxgrad);
     pp.query("diff1", diff1);
-    pp.query("pure_advection",pure_advection);
     if(refine_based_maxgrad){
         pp.get("grad_comp", grad_comp);
         pp.get("tagfrac", tagfrac);
@@ -487,7 +476,7 @@ CNS::read_params ()
 
     pp.query("gravity", gravity);
 
-    pp.query("eos_gamma", h_parm->eos_gamma);
+    // pp.query("eos_gamma", h_parm->eos_gamma);
     // do_minp == 1 implies we set a minimum pressure and do not allow pressure/density to go negative 
     // allows for using high cfl number but may reduce accuracy / result in few points with non-physical pressures
     pp.query("do_minp", h_parm->do_minp);
@@ -500,6 +489,45 @@ CNS::read_params ()
 
     h_parm->Initialize();
     amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_parm, h_parm+1, d_parm);
+
+    read_eos_params(do_react);
+}
+
+void
+CNS::read_eos_params (int do_react)
+{
+    ParmParse pp("eos");
+
+    // read in gamma
+    pp.query("gamma", h_eos_parm->eos_gamma);
+    // read in molecular weight (in CGS)
+    pp.query("molecular_weight", h_eos_parm->eos_mu);
+    h_eos_parm->eos_mu = h_eos_parm->eos_mu*1e-3;
+
+    // read in heat release q (non-dimensional, as q * Mw / (R * T_0) )
+    if(do_react == 1){
+        pp.query("heat_release", h_eos_parm->q_nd);
+        pp.query("activation_energy", h_eos_parm->Ea_nd);
+        pp.query("reference_temperature", h_eos_parm->Tref);
+        pp.query("pre_exponential", h_eos_parm->pre_exp);
+        pp.query("kappa_0", h_eos_parm->kappa_0);
+
+        // Convert Arrhenius pre-exponential and thermal conductivity to SI units
+        h_eos_parm->pre_exp = h_eos_parm->pre_exp * 1e-3;
+        h_eos_parm->kappa_0 = h_eos_parm->kappa_0 * 1e-1;
+    }
+
+    h_eos_parm->Initialize();
+
+    // Calculate the dimensional heat release and activation energy (in SI units)
+    h_eos_parm->q_dim = h_eos_parm->q_nd * h_eos_parm->Rsp * h_eos_parm->Tref;
+    h_eos_parm->Ea_dim = h_eos_parm->Ea_nd * h_eos_parm->Ru * h_eos_parm->Tref;
+
+    Print() << "gamma = " << h_eos_parm->eos_gamma << ", mu = " << h_eos_parm->eos_mu
+            << ", q = " << h_eos_parm->q_nd << ", " << h_eos_parm->q_dim
+            << ", Ea = " << h_eos_parm->Ea_nd << ", " << h_eos_parm->Ea_dim
+            << ", A = " << h_eos_parm->pre_exp << "\n";
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_eos_parm, h_eos_parm+1, d_eos_parm);
 }
 
 void
@@ -514,12 +542,15 @@ CNS::avgDown ()
     MultiFab& S_crse =          get_new_data(State_Type);
     MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
+    int conscomp = CCOMP;
+    if(do_react == 1) conscomp = conscomp + 1;
+
     amrex::average_down(S_fine, S_crse, fine_lev.geom, geom,
-                        0, CCOMP, parent->refRatio(level));
+                        0, conscomp, parent->refRatio(level));
 
     const int nghost = 0;
 
-    if(pure_advection == 0) computeTemp(S_crse, nghost);
+    computeTemp(S_crse, nghost);
 }   
 
 void
@@ -542,6 +573,7 @@ CNS::estTimeStep (int ng)
     const int ngrow = ng;
 
     Parm const* lparm = d_parm;
+    EOSParm const* leosparm = d_eos_parm;
 #ifdef AMREX_USE_GPU
     prefetchToDevice(S);
 #endif
@@ -549,7 +581,7 @@ CNS::estTimeStep (int ng)
     Real estdt = amrex::ReduceMin(S, 0,
     [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
     {
-        return cns_estdt(bx, fab, dx, ngrow, *lparm);
+        return cns_estdt(bx, fab, dx, ngrow, *lparm, *leosparm);
     });
 
     estdt *= cfl;
@@ -570,6 +602,7 @@ CNS::computeTemp (MultiFab& State, int ng)
     BL_PROFILE("CNS::computeTemp()");
 
     Parm const* lparm = d_parm;
+    EOSParm const* leosparm = d_eos_parm;
     // This will reset Eint and compute Temperature
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -582,7 +615,7 @@ CNS::computeTemp (MultiFab& State, int ng)
         amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cns_compute_temperature(i,j,k,sfab,*lparm);
+            cns_compute_temperature(i,j,k,sfab,*lparm,*leosparm);
         });
     }
 }
