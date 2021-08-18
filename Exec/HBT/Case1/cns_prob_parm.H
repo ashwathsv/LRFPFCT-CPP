@@ -17,6 +17,7 @@ struct ProbParm
     amrex::Real v_0 = 0.0;
     amrex::Real v_r = 0.0;
     amrex::Real width = 0.1;
+    amrex::Real exit_width = 0.0508;
     amrex::Real Mach_shock = 2.0;
     amrex::Real Mach_in = 2.0;  
     amrex::Real inflow_time = 0.0;

@@ -21,6 +21,7 @@ extern "C" {
         pp.query("u_r", CNS::h_prob_parm->u_r);
         pp.query("v_0", CNS::h_prob_parm->v_0);
         pp.get("width", CNS::h_prob_parm->width);
+        pp.get("exit_width", CNS::h_prob_parm->exit_width);
         pp.get("Mach_shock", CNS::h_prob_parm->Mach_shock);
         pp.get("Mach_in", CNS::h_prob_parm->Mach_in);
         pp.get("inflow_time", CNS::h_prob_parm->inflow_time);

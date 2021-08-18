@@ -77,9 +77,11 @@ cns_probspecific_bc(
   const amrex::Real x[AMREX_SPACEDIM],
   const amrex::Real s_int[NGROW][NCONS],
   amrex::Real s_ext[NCONS],
-  const int /*idir*/,
+  const int idir,
   const int ind,
-  const int /*sgn*/,
+  const int dlo,
+  const int dhi,
+  const int sgn,
   const amrex::Real time,
   amrex::GeometryData const& geomdata,
   ProbParm const& prob_parm)
@@ -98,43 +100,65 @@ cns_probspecific_bc(
     Real tubehiz = tubeloz + prob_parm.width;
 #endif
 
-    if( (x[1] >= tubeloy && x[1] <= tubehiy)
+    if(idir == 0 && sgn == -1){
+        if( (x[1] >= tubeloy && x[1] <= tubehiy)
 #if AMREX_SPACEDIM==3
-        && (x[2] >= tubeloz && x[2] <= tubehiz)
+            && (x[2] >= tubeloz && x[2] <= tubehiz)
 #endif
-        ){
-        if(time <= prob_parm.inflow_time){
-            // high-pressure supersonic inflow BC
-             s_ext[URHO]  = prob_parm.rho_r * prob_parm.rho_0;
-             s_ext[UPRE]  = prob_parm.p_r * prob_parm.p_0;
-             s_ext[UMY]   = Real(0.0);
-             s_ext[UEINT] = prob_parm.p_r * prob_parm.p_0 / (prob_parm.gamma - Real(1.0));
-             Real cs      = std::sqrt(prob_parm.gamma * prob_parm.p_r * prob_parm.p_0 
-                            / (prob_parm.rho_r * prob_parm.rho_0));
-             s_ext[UMX]   = prob_parm.rho_r * prob_parm.rho_0 * uin;
-             s_ext[UEDEN] = s_ext[UEINT] 
-                          + Real(0.5)*( s_ext[UMX]*s_ext[UMX] + s_ext[UMY]*s_ext[UMY])/s_ext[URHO];
-             s_ext[UTEMP] = s_ext[UPRE]/(prob_parm.Rsp * s_ext[URHO]);
-             s_ext[URHOY] = Real(0.0);
-        } else{
-            // simple first-order extrapolation
+            ){
+            if(time <= prob_parm.inflow_time){
+                // high-pressure supersonic inflow BC
+                s_ext[URHO]  = prob_parm.rho_r * prob_parm.rho_0;
+                s_ext[UPRE]  = prob_parm.p_r * prob_parm.p_0;
+                s_ext[UMY]   = Real(0.0);
+                s_ext[UEINT] = prob_parm.p_r * prob_parm.p_0 / (prob_parm.gamma - Real(1.0));
+                Real cs      = std::sqrt(prob_parm.gamma * prob_parm.p_r * prob_parm.p_0 
+                                / (prob_parm.rho_r * prob_parm.rho_0));
+                s_ext[UMX]   = prob_parm.rho_r * prob_parm.rho_0 * uin;
+                s_ext[UEDEN] = s_ext[UEINT] 
+                            + Real(0.5)*( s_ext[UMX]*s_ext[UMX] + s_ext[UMY]*s_ext[UMY])/s_ext[URHO];
+                s_ext[UTEMP] = s_ext[UPRE]/(prob_parm.Rsp * s_ext[URHO]);
+                s_ext[URHOY] = Real(0.0);
+            } else{
+                // simple first-order extrapolation
+                for(int nc = URHO; nc < NCONS; ++nc){
+                    s_ext[nc] = s_int[0][nc];
+                }
+            }
+        }else{
+            // non-slip wall boundary condition
+            s_ext[URHO]   = s_int[-(ind+1)][URHO];
+            s_ext[UMX]    = -s_int[-(ind+1)][UMX];
+            s_ext[UMY]    = s_int[-(ind+1)][UMY];
+#if AMREX_SPACEDIM==3
+            s_ext[UMZ]    = s_int[-(ind+1)][UMZ];
+#endif
+            s_ext[UEDEN]  = s_int[-(ind+1)][UEDEN];
+            s_ext[URHOY]  = Real(0.0);
+            s_ext[UEINT]  = s_int[-(ind+1)][UEINT];
+            s_ext[UTEMP]  = s_int[-(ind+1)][UTEMP];
+            s_ext[UPRE]   = s_int[-(ind+1)][UPRE];
+        }
+    } else if(idir == 0 && sgn == 1){
+        Real exit_len = prob_parm.exit_width * prob_parm.width;
+        Real exitloy = ycm - Real(0.5)*exit_len;
+        Real exithiy = exitloy + exit_len;
+        if(x[1] >= exitloy && x[1] <= exithiy){
+            // simple first-order extrapolation (outflow)
             for(int nc = URHO; nc < NCONS; ++nc){
                 s_ext[nc] = s_int[0][nc];
             }
+        } else{
+            // non-slip wall boundary condition
+            s_ext[URHO]  = s_int[ind-dhi-1][URHO];
+            s_ext[UMX]   = -s_int[ind-dhi-1][UMX];
+            s_ext[UMY]   = s_int[ind-dhi-1][UMY];
+            s_ext[UEDEN] = s_int[ind-dhi-1][UEDEN];
+            s_ext[URHOY] = s_int[ind-dhi-1][URHOY];
+            s_ext[UEINT] = s_int[ind-dhi-1][UEINT];
+            s_ext[UTEMP] = s_int[ind-dhi-1][UTEMP];
+            s_ext[UPRE] = s_int[ind-dhi-1][UPRE];
         }
-    }else{
-        // non-slip wall boundary condition
-        s_ext[URHO]   = s_int[-(ind+1)][URHO];
-        s_ext[UMX]    = -s_int[-(ind+1)][UMX];
-        s_ext[UMY]    = s_int[-(ind+1)][UMY];
-#if AMREX_SPACEDIM==3
-        s_ext[UMZ]    = s_int[-(ind+1)][UMZ];
-#endif
-        s_ext[UEDEN]  = s_int[-(ind+1)][UEDEN];
-        s_ext[URHOY]  = Real(0.0);
-        s_ext[UEINT]  = s_int[-(ind+1)][UEINT];
-        s_ext[UTEMP]  = s_int[-(ind+1)][UTEMP];
-        s_ext[UPRE]   = s_int[-(ind+1)][UPRE];
     }
 }
 

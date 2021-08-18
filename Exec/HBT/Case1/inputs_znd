@@ -1,11 +1,11 @@
 amrex.fpe_trap_invalid=0
 
-max_step  = 0
+max_step  = 20000
 stop_time = 0.027
 geometry.is_periodic = 0 0 1
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
 geometry.prob_lo     =   0.0     0.0     0.0
-geometry.prob_hi     =   9.0     1.125     1.0
+geometry.prob_hi     =   4.5     1.125     1.0
 amr.n_cell           =   256     32      32
 #amr.n_cell           =   512     64      32
 #amr.n_cell           =   1024     128      32
@@ -16,14 +16,14 @@ amr.n_cell           =   256     32      32
 # 2 = Outflow            5 = NoSlipWall
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
 cns.lo_bc       =  1   3   0
-cns.hi_bc       =  3   3   0
+cns.hi_bc       =  1   3   0
 
-cns.cfl = 0.005  # cfl number for hyperbolic system
+cns.cfl = 0.05  # cfl number for hyperbolic system
 
 cns.v = 2
 amr.v = 1
 cns.refine_max_dengrad_lev 	= 10
-cns.diff1					= 0.99
+cns.diff1					= 0.98
 cns.pure_advection          = 0
 
 cns.do_minp					= 0
@@ -35,7 +35,7 @@ cns.grad_comp 				= 7
 cns.tagfrac					= 0.09
 
 # REFINEMENT / REGRIDDING 
-amr.max_level       = 2       # maximum level number allowed
+amr.max_level       = 0       # maximum level number allowed
 # 2 2
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
 amr.regrid_int      = 2 # how often to regrid
@@ -52,13 +52,13 @@ amr.check_file              = Outputs_C1L2M3_temp/chk    # root name of checkpoi
 #amr.check_file              = Outputs_C1L2M2_1024/chk    # root name of checkpoint file
 
 amr.check_int               = 2000    # number of timesteps between checkpoints
-#amr.restart                 = Outputs_C1L2M3_temp/chk070329 
+amr.restart                 = Outputs_C1L2M3_temp/chk010000 
 
 # PLOTFILES
 amr.plot_files_output = 1
 amr.file_name_digits  = 6
 amr.plot_file         = Outputs_C1L2M3_temp/plt     # root name of plotfile
-amr.plot_int          = 800     # number of timesteps between plotfiles
+amr.plot_int          = 500     # number of timesteps between plotfiles
 amr.derive_plot_vars  = mach x_velocity y_velocity
 
 # problem specific parameter
@@ -86,6 +86,7 @@ prob.v_0   = 0.0
 #prob.w_l   = 1.0
 #prob.w_r   = 1.0
 prob.width = 0.2
+prob.exit_width = 0.5
 
 prob.pressure_file = pressfiles/pressuredataC1L2M3_temp.txt
 #prob.pressure_file = Outputs_C1L2M2_512/pressuredataC1L2M2_512.txt

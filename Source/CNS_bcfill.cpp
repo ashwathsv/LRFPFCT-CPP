@@ -51,7 +51,7 @@ struct CnsFillExtDir
                         s_int[ng][n] = data(loc, n);
                     }
                 }
-                cns_probspecific_bc(x, s_int, s_ext, idir, iv[idir], -1, time, geom, *lprobparm);
+                cns_probspecific_bc(x, s_int, s_ext, idir, iv[idir], domlo[idir], domhi[idir], -1, time, geom, *lprobparm);
                 for (int n = 0; n < NCONS; n++) {
                     data(iv, n) = s_ext[n];
                 }
@@ -64,7 +64,7 @@ struct CnsFillExtDir
                         s_int[ng][n] = data(loc, n);
                     }                    
                 }
-                cns_probspecific_bc(x, s_int, s_ext, idir, iv[idir], 1, time, geom, *lprobparm);
+                cns_probspecific_bc(x, s_int, s_ext, idir, iv[idir], domlo[idir], domhi[idir], 1, time, geom, *lprobparm);
                 for (int n = 0; n < NCONS; n++) {
                     data(iv, n) = s_ext[n];
                 }
@@ -79,7 +79,7 @@ struct CnsFillExtDir
                         s_int[ng][n] = data(loc, n);
                     }
                 }
-                cns_probspecific_bc(x, s_int, s_ext, idir, iv[idir], -1, time, geom, *lprobparm);
+                cns_probspecific_bc(x, s_int, s_ext, idir, iv[idir], domlo[idir], domhi[idir], -1, time, geom, *lprobparm);
                 for (int n = 0; n < NCONS; n++) {
                     data(iv, n) = s_ext[n];
                 }
@@ -92,7 +92,7 @@ struct CnsFillExtDir
                         s_int[ng][n] = data(loc, n);
                     }
                 }
-                cns_probspecific_bc(x, s_int, s_ext, idir, iv[idir], 1, time, geom, *lprobparm);
+                cns_probspecific_bc(x, s_int, s_ext, idir, iv[idir], domlo[idir], domhi[idir], 1, time, geom, *lprobparm);
                 for (int n = 0; n < NCONS; n++) {
                     data(iv, n) = s_ext[n];
                 }

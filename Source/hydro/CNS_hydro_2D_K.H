@@ -23,7 +23,7 @@ fct_con_flux_x (int i, int j, int k,
     flcx(i,j,k,UMX)   = ( pint + ux*Real(0.5)*(uold(i-1,j,k,UMX) + uold(i,j,k,UMX)) );
     flcx(i,j,k,UMY)   = ux*Real(0.5)*( uold(i-1,j,k,UMY) + uold(i,j,k,UMY) );
     flcx(i,j,k,UEDEN) = ux*( pint + Real(0.5)*( uold(i-1,j,k,UEDEN) + uold(i,j,k,UEDEN)));
-    flcx(i,j,k,URHOY) = ux*Real(0.5)*(uold(i-1,j,k,URHOY) + uold(i,j,k,URHOY));
+    // flcx(i,j,k,URHOY) = ux*Real(0.5)*(uold(i-1,j,k,URHOY) + uold(i,j,k,URHOY));
 }
 
 AMREX_GPU_DEVICE
@@ -43,7 +43,7 @@ fct_con_flux_y (int i, int j, int k,
     flcy(i,j,k,UMX)   = uy*Real(0.5)*( uold(i,j-1,k,UMX) + uold(i,j,k,UMX) );
     flcy(i,j,k,UMY)   = ( pint + uy*Real(0.5)*(uold(i,j-1,k,UMY) + uold(i,j,k,UMY)) );
     flcy(i,j,k,UEDEN) = uy*( pint + Real(0.5)*( uold(i,j-1,k,UEDEN) + uold(i,j,k,UEDEN)));
-    flcy(i,j,k,URHOY)  = uy*Real(0.5)*( uold(i,j-1,k,URHOY) + uold(i,j,k,URHOY) );
+    // flcy(i,j,k,URHOY)  = uy*Real(0.5)*( uold(i,j-1,k,URHOY) + uold(i,j,k,URHOY) );
 }
 
 AMREX_GPU_DEVICE
