@@ -41,9 +41,6 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
                 Real vx = mx*rhoinv;
                 Real vy = my*rhoinv;
                 Real p = state(i,j,k,UPRE);
-                // Print() << "ind = (" << i << "," << j << "," << k 
-                //         << "), gma = " << eos_parm.eos_gamma 
-                //         << ", p = " << p << ", rhoinv = " << rhoinv << "\n";
                 Real cs = std::sqrt(eos_parm.eos_gamma*p*rhoinv);
                 Real dtx = dx[0]/(amrex::Math::abs(vx)+cs);
                 Real dty = dx[1]/(amrex::Math::abs(vy)+cs);
