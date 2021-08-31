@@ -1,13 +1,13 @@
 amrex.fpe_trap_invalid=1
 
-max_step  = 1000
-stop_time = 0.05
-#stop_time = 0.2074
+max_step  = 0
+stop_time = 1.0
+#stop_time = 0.07345
 geometry.is_periodic = 0 0 1
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
 geometry.prob_lo     =   0.0     0.0     0.0
-geometry.prob_hi     =   9.0     1.125     1.125
-amr.n_cell           =   256     32      32
+geometry.prob_hi     =   6.6     0.594   1.1
+amr.n_cell           =   256     32      64
 
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
 # 0 = Interior           3 = Symmetry
@@ -70,7 +70,7 @@ prob.p_r   = 16.89
 # 4.5 7.125 10.33333333
 
 prob.rho_0 = 1.184
-prob.rho_r = 1,785
+prob.rho_r = 1.785
 
 prob.u_0   = 0.0
 prob.v_0   = 0.0
@@ -78,7 +78,10 @@ prob.v_0   = 0.0
 #prob.w_l   = 1.0
 #prob.w_r   = 1.0
 prob.width = 0.2
+prob.ycent = 0.40386
+prob.zcent = 0.55
+prob.exit_width = 0.0
 
 prob.pressure_file = pressfiles/pressuredataC1L2M3_3D.txt
 
-prob.inflow_time = 0.03047
+prob.inflow_time = 0.01469

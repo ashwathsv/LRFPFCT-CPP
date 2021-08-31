@@ -29,11 +29,17 @@ cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state,
     Real zcm = Real(0.5)*(geomdata.ProbLo(2) + geomdata.ProbHi(2));
     Real tubeloz = zcm - Real(0.5)*prob_parm.width;
     Real tubehiz = tubeloz + prob_parm.width;
+
+    Real dist = ((y-prob_parm.ycent)*(y-prob_parm.ycent)) + ((z-prob_parm.zcent)*(z-prob_parm.zcent)) 
+              - (0.25*prob_parm.width*prob_parm.width);
 #endif
 
-    if(i == domlo.x && (y >= tubeloy && y <= tubehiy)
+    if(i == domlo.x 
+#if AMREX_SPACEDIM==2
+        && (y >= tubeloy && y <= tubehiy)
+#endif
 #if AMREX_SPACEDIM==3
-        && (z >= tubeloz && z <= tubehiz)
+        && (dist <= Real(0.0))
 #endif
 ){
         state(i,j,k,URHO)   = prob_parm.rho_r * prob_parm.rho_0;
@@ -98,12 +104,19 @@ cns_probspecific_bc(
     Real zcm = Real(0.5)*(geomdata.ProbLo(2) + geomdata.ProbHi(2));
     Real tubeloz = zcm - Real(0.5)*prob_parm.width;
     Real tubehiz = tubeloz + prob_parm.width;
+
+    Real dist = ((x[1]-prob_parm.ycent)*(x[1]-prob_parm.ycent)) 
+              + ((x[2]-prob_parm.zcent)*(x[2]-prob_parm.zcent)) 
+              - (0.25*prob_parm.width*prob_parm.width);
 #endif
 
     if(idir == 0 && sgn == -1){
+#if AMREX_SPACEDIM==2
         if( (x[1] >= tubeloy && x[1] <= tubehiy)
+#endif
 #if AMREX_SPACEDIM==3
-            && (x[2] >= tubeloz && x[2] <= tubehiz)
+        if( dist <= Real(0.0)
+            // && (x[2] >= tubeloz && x[2] <= tubehiz)
 #endif
             ){
             if(time <= prob_parm.inflow_time){

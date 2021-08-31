@@ -25,6 +25,11 @@ struct ProbParm
     amrex::Real Rsp = amrex::Real(287.058);
     amrex::Real sh_speed = 0.0;
 
+    amrex::Real ycent = 0.0;
+#if AMREX_SPACEDIM==3
+    amrex::Real zcent = 0.0;
+#endif
+
     std::string pres_file = "pressuredata.txt";
 };
 

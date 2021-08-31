@@ -26,6 +26,12 @@ extern "C" {
         pp.get("Mach_in", CNS::h_prob_parm->Mach_in);
         pp.get("inflow_time", CNS::h_prob_parm->inflow_time);
 
+        // get y and z coordinates for the center of the tube
+        pp.get("ycent", CNS::h_prob_parm->ycent);
+#if AMREX_SPACEDIM==3
+        pp.get("zcent", CNS::h_prob_parm->zcent);
+#endif
+
         pp.get("pressure_file", CNS::h_prob_parm->pres_file);
 
         amrex::Real a1 = sqrt(CNS::h_prob_parm->gamma*CNS::h_prob_parm->p_0/CNS::h_prob_parm->rho_0);
