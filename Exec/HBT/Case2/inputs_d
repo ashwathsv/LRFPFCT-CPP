@@ -1,7 +1,8 @@
-amrex.fpe_trap_invalid=1
+amrex.fpe_trap_invalid=0
 
 max_step  = 100000
-stop_time = 0.1
+stop_time = 0.01
+#stop_time = 0.1
 
 geometry.is_periodic = 0 0 1
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
@@ -24,12 +25,12 @@ cns.cfl = 0.05  # cfl number for hyperbolic system
 cns.v = 2
 amr.v = 1
 cns.refine_max_dengrad_lev 	= 10
-cns.diff1					= 0.94
+cns.diff1					= 0.995
 cns.pure_advection          = 0
 
 cns.refine_based_maxgrad 	= 1
 cns.grad_comp 				= 6
-cns.tagfrac					= 0.005
+cns.tagfrac					= 0.05
 
 # REFINEMENT / REGRIDDING 
 amr.max_level       = 2       # maximum level number allowed
@@ -49,7 +50,7 @@ amr.check_int               = -1    # number of timesteps between checkpoints
 
 # PLOTFILES
 amr.plot_files_output = 1
-amr.file_name_digits  = 6
+amr.file_name_digits  = 8
 amr.plot_file         = Outputs_C2dL2M3_256/plt     # root name of plotfile
 amr.plot_int          = 1200     # number of timesteps between plotfiles
 amr.derive_plot_vars  = mach x_velocity y_velocity
@@ -61,11 +62,11 @@ prob.Mach_shock = 3.0
 prob.Mach_in    = 0.4752
 # 0.5774 0.513 0.4752 
 
-prob.p_0   = 101300.00 
+prob.p_0   = 101325.00 
 prob.p_r   = 10.33333333
 # 4.5 7.125 10.33333333
 
-prob.rho_0 = 1.20429
+prob.rho_0 = 1.2041
 prob.rho_r = 3.8571
 # 2.66666667 3.333333  3.8571
 
@@ -78,7 +79,7 @@ prob.out_loend = 0.4625
 
 prob.pressure_file = pressfiles/pressuredataC2dL2M3_256.txt
 
-prob.inflow_time = 0.0211
+prob.inflow_time = 0.0054175
 # 0.02185 0.0211
 
 prob.iprobe    = 255

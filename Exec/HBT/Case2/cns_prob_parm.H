@@ -24,6 +24,8 @@ struct ProbParm
     amrex::Real Rsp = amrex::Real(287.058);
     amrex::Real out_width = 0.1;
     amrex::Real out_loend = 0.0;
+    amrex::Real sh_speed = 0.0;
+    
     int iprobe = 0;
     int jprobe = 0;
     int isout_lox = 0;

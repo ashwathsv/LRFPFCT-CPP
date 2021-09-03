@@ -20,20 +20,58 @@ cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state,
     const auto domlo = amrex::lbound(domain);
 
     Real ycm = Real(0.5)*(geomdata.ProbLo(1) + geomdata.ProbHi(1));
-    Real tubelo = ycm - Real(0.5)*prob_parm.width;
-    Real tubehi = tubelo + prob_parm.width;
+    Real tubeloy = ycm - Real(0.5)*prob_parm.width;
+    Real tubehiy = tubeloy + prob_parm.width;
 
     Real y = geomdata.ProbLo(1) + (j+Real(0.5))*geomdata.CellSize(1);
+#if AMREX_SPACEDIM==3
+    Real z = geomdata.ProbLo(2) + (k+Real(0.5))*geomdata.CellSize(2);
+    Real zcm = Real(0.5)*(geomdata.ProbLo(2) + geomdata.ProbHi(2));
+    Real tubeloz = zcm - Real(0.5)*prob_parm.width;
+    Real tubehiz = tubeloz + prob_parm.width;
 
-    state(i,j,k,URHO ) = prob_parm.rho_0;
-    state(i,j,k,UMX  ) = prob_parm.rho_0*prob_parm.u_0;
-    state(i,j,k,UMY  ) = prob_parm.rho_0*prob_parm.v_0;
-    Real et = prob_parm.p_0/(parm.eos_gamma-Real(1.0));
-    state(i,j,k,UEINT) = et;
-    state(i,j,k,UPRE)  = prob_parm.p_0;
-    state(i,j,k,UEDEN) = et + Real(0.5)*prob_parm.rho_0*( prob_parm.u_0*prob_parm.u_0 
-                       + prob_parm.v_0*prob_parm.v_0 );
-    state(i,j,k,UTEMP) = (Real(1.0)/state(i,j,k,URHO)) * state(i,j,k,UEINT) * (Real(1.0)/parm.cv);        
+    Real dist = ((y-prob_parm.ycent)*(y-prob_parm.ycent)) + ((z-prob_parm.zcent)*(z-prob_parm.zcent)) 
+              - (0.25*prob_parm.width*prob_parm.width);
+#endif
+
+    if(i == domlo.x 
+#if AMREX_SPACEDIM==2
+        && (y >= tubeloy && y <= tubehiy)
+#endif
+#if AMREX_SPACEDIM==3
+        && (dist <= Real(0.0))
+#endif
+){
+        state(i,j,k,URHO)   = prob_parm.rho_r * prob_parm.rho_0;
+        state(i,j,k,UPRE)   = prob_parm.p_r * prob_parm.p_0;
+        state(i,j,k,UMY)    = Real(0.0);
+        state(i,j,k,UEINT)  = prob_parm.p_r * prob_parm.p_0 / (parm.eos_gamma - Real(1.0)); 
+
+        Real uin = prob_parm.sh_speed*( Real(1.0) - (Real(1.0)/prob_parm.rho_r) );
+        state(i,j,k,UMX)    = prob_parm.rho_r * prob_parm.rho_0 * uin;
+        state(i,j,k,UEDEN)  = state(i,j,k,UEINT) 
+                            + Real(0.5)*( state(i,j,k,UMX)*state(i,j,k,UMX) 
+                            + state(i,j,k,UMY)*state(i,j,k,UMY) ) / state(i,j,k,URHO);
+        state(i,j,k,UTEMP)  = state(i,j,k,UPRE)/(prob_parm.Rsp * state(i,j,k,URHO));
+        state(i,j,k,URHOY)  = Real(0.0);
+#if AMREX_SPACEDIM==3
+        state(i,j,k,UMZ) = Real(0.0);
+#endif
+    }else{
+        state(i,j,k,URHO ) = prob_parm.rho_0;
+        state(i,j,k,UMX  ) = prob_parm.rho_0*prob_parm.u_0;
+        state(i,j,k,UMY  ) = prob_parm.rho_0*prob_parm.v_0;
+        Real et = prob_parm.p_0/(parm.eos_gamma-Real(1.0));
+        state(i,j,k,UEINT) = et;
+        state(i,j,k,UPRE)  = prob_parm.p_0;
+        state(i,j,k,UEDEN) = et + Real(0.5)*prob_parm.rho_0*( prob_parm.u_0*prob_parm.u_0 
+                           + prob_parm.v_0*prob_parm.v_0 );
+        state(i,j,k,UTEMP) = state(i,j,k,UPRE)/(prob_parm.Rsp * state(i,j,k,URHO));
+        state(i,j,k,URHOY) = Real(0.0);
+#if AMREX_SPACEDIM==3
+        state(i,j,k,UMZ) = Real(0.0);
+#endif
+    }      
     
 }
 
@@ -112,12 +150,20 @@ cns_probspecific_bc(
   amrex::Real s_ext[NCONS],
   const int idir,
   const int ind,
+  const int dlo,
+  const int dhi,
   const int sgn,
   const amrex::Real time,
   amrex::GeometryData const& geomdata,
   ProbParm const& prob_parm)
 {
     using amrex::Real;
+
+    Real ycm = Real(0.5)*(geomdata.ProbLo(1) + geomdata.ProbHi(1));
+    Real tubeloy = ycm - Real(0.5)*prob_parm.width;
+    Real tubehiy = tubeloy + prob_parm.width;
+
+    Real uin = prob_parm.sh_speed*( Real(1.0) - (Real(1.0)/prob_parm.rho_r) );
 
     if(idir == 0 && sgn == -1){
         //supersonic inflow BC for left boundary
@@ -132,11 +178,12 @@ cns_probspecific_bc(
                 s_ext[UMY]   = Real(0.0);
                 s_ext[UEINT] = prob_parm.p_r * prob_parm.p_0 / (prob_parm.gamma - Real(1.0));
                 Real cs      = std::sqrt(prob_parm.gamma * prob_parm.p_r * prob_parm.p_0 
-                            / (prob_parm.rho_r * prob_parm.rho_0));
-                s_ext[UMX]   = prob_parm.rho_r * prob_parm.rho_0 * prob_parm.Mach_in * cs;
+                                / (prob_parm.rho_r * prob_parm.rho_0));
+                s_ext[UMX]   = prob_parm.rho_r * prob_parm.rho_0 * uin;
                 s_ext[UEDEN] = s_ext[UEINT] 
-                          + Real(0.5)*( s_ext[UMX]*s_ext[UMX] + s_ext[UMY]*s_ext[UMY])/s_ext[URHO];
-                s_ext[UTEMP]  = s_ext[UPRE]/(prob_parm.Rsp * s_ext[URHO]);
+                            + Real(0.5)*( s_ext[UMX]*s_ext[UMX] + s_ext[UMY]*s_ext[UMY])/s_ext[URHO];
+                s_ext[UTEMP] = s_ext[UPRE]/(prob_parm.Rsp * s_ext[URHO]);
+                s_ext[URHOY] = Real(0.0);
             } else{
                 // simple first-order extrapolation
                 for(int nc = URHO; nc < NCONS; ++nc){
