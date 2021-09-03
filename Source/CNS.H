@@ -177,6 +177,7 @@ protected:
 
     static int do_reflux;
     static int do_react;
+    static int react_nsubcycle;
 
     static int refine_max_dengrad_lev;
     static amrex::Real refine_gradlim;

@@ -29,6 +29,7 @@ Real      CNS::tagfrac                  = 0.0;
 Real      CNS::gravity                  = 0.0;
 Real      CNS::diff1                    = 1.0;
 int       CNS::do_react                 = 0;
+int       CNS::react_nsubcycle          = 1;
 
 CNS::CNS ()
 {}
@@ -464,6 +465,10 @@ CNS::read_params ()
 
     pp.query("do_reflux", do_reflux);
     pp.query("do_react", do_react);
+    if(do_react == 1){
+        pp.get("react_nsubcycle", react_nsubcycle);
+    }
+    
 
     pp.query("refine_max_dengrad_lev", refine_max_dengrad_lev);
     pp.query("refine_gradlim", refine_gradlim);
@@ -577,11 +582,14 @@ CNS::estTimeStep (int ng)
 #ifdef AMREX_USE_GPU
     prefetchToDevice(S);
 #endif
+
+    Real pmax  = S_new.max(UPRE,0);
+    ParallelDescriptor::ReduceRealMax(pmax, ParallelDescriptor::IOProcessorNumber());
     
     Real estdt = amrex::ReduceMin(S, 0,
     [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
     {
-        return cns_estdt(bx, fab, dx, ngrow, *lparm, *leosparm);
+        return cns_estdt(bx, fab, dx, ngrow, *lparm, *leosparm, pmax);
     });
 
     estdt *= cfl;

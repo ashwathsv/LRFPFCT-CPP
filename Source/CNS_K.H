@@ -15,7 +15,8 @@ amrex::Real
 cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
            int ng,
-           Parm const& parm, EOSParm const& eos_parm) noexcept
+           Parm const& parm, EOSParm const& eos_parm,
+           amrex::Real pmax) noexcept
 {
     using amrex::Real;
 
@@ -41,7 +42,7 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
                 Real vx = mx*rhoinv;
                 Real vy = my*rhoinv;
                 Real p = state(i,j,k,UPRE);
-                Real cs = std::sqrt(eos_parm.eos_gamma*p*rhoinv);
+                Real cs = std::sqrt(eos_parm.eos_gamma*p*rhoinv)*(pmax/p);
                 Real dtx = dx[0]/(amrex::Math::abs(vx)+cs);
                 Real dty = dx[1]/(amrex::Math::abs(vy)+cs);
 #if AMREX_SPACEDIM==2

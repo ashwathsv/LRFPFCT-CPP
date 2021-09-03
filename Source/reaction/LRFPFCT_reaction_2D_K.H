@@ -55,28 +55,32 @@ AMREX_GPU_DEVICE
 inline
 void
 fct_add_reaction_source (int i, int j, int k,
-                amrex::Array4<amrex::Real> const& omega,
-                amrex::Array4<amrex::Real> const& ucx,
-                amrex::Array4<amrex::Real> const& ucy,
+                amrex::Array4<amrex::Real> const& uc,
                 amrex::Array4<amrex::Real> const& utemp,
-                amrex::Array4<amrex::Real> const& unew,
-                amrex::Array4<amrex::Real const> const& uold,
+                amrex::Real dt,
+                const int nsub,
                 EOSParm const& eos_parm) noexcept
 {
     using amrex::Real;
 
-    Real omegarho = omega(i,j,k,0) * uold(i,j,k,URHO);
-    ucx(i,j,k,UEDEN) = ucx(i,j,k,UEDEN) - (omegarho * eos_parm.q_dim);
-    ucx(i,j,k,URHOY) = ucx(i,j,k,URHOY) + omegarho;
+    Real rhoinv = Real(1.0) / uc(i,j,k,URHO);
 
-    ucy(i,j,k,UEDEN) = ucy(i,j,k,UEDEN) - (omegarho * eos_parm.q_dim);
-    ucy(i,j,k,URHOY) = ucy(i,j,k,URHOY) + omegarho;
+    for(int ns = 0; ns < nsub; ++ns){
+        Real omegarho = - uc(i,j,k,URHO) * eos_parm.pre_exp * uc(i,j,k,RHOY) 
+                      * std::exp(-eos_parm.Ea_dim / (eos_parm.Ru * uc(i,j,k,UTEMP)));
+        uc(i,j,k,UEDEN) = uc(i,j,k,UEDEN) - (dt * omegarho * eos_parm.q_dim);
+        uc(i,j,k,URHOY) = uc(i,j,k,URHOY) + (dt * omegarho);
 
-    utemp(i,j,k,UEDEN) = utemp(i,j,k,UEDEN) - (omegarho * eos_parm.q_dim);
-    utemp(i,j,k,URHOY) = utemp(i,j,k,URHOY) + omegarho;
+        if(uc(i,j,k,RHOY) * rhoinv > Real(1.0)) uc(i,j,k,URHOY) = uc(i,j,k,RHO);
 
-    unew(i,j,k,UEDEN) = utemp(i,j,k,UEDEN);
-    unew(i,j,k,URHOY) = utemp(i,j,k,URHOY);
+        uc(i,j,k,UPRE) = (eos_parm.eos_gamma - Real(1.0)) * (uc(i,j,k,UEDEN)
+                       - ( 0.5 * rhoinv * 
+                         ( uc(i,j,k,UMX)*uc(i,j,k,UMX) + uc(i,j,k,UMY)*uc(i,j,k,UMY) )) );
+        uc(i,j,k,UTEMP) = uc(i,j,k,UPRE) / (uc(i,j,k,URHO) * eos_parm.Rsp);
+    }
+
+    utemp(i,j,k,UEDEN) = uc(i,j,k,UEDEN);
+    utemp(i,j,k,URHOY) = uc(i,j,k,URHOY);
 }
 
 #endif

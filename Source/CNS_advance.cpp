@@ -92,15 +92,20 @@ CNS::advance (Real time, Real dt, int /*iteration*/, int /*ncycle*/)
     // Sborder has the low order solution (solution for upto 3 ghost cells)
 
     // RK step 1, FCT step 2
-    // FCT_corrected_solution(Soldtmp, Sborder, S_new, AMREX_D_DECL(Scx, Scy, Scz), 
-    //              AMREX_D_DECL(Sdx, Sdy, Sdz), AMREX_D_DECL(flux, fluy, fluz),
-    //              Real(0.5)*dt, fr_as_crse, fr_as_fine, rk);
+    FCT_corrected_solution(Soldtmp, Sborder, S_new, AMREX_D_DECL(Scx, Scy, Scz), 
+                 AMREX_D_DECL(Sdx, Sdy, Sdz), AMREX_D_DECL(flux, fluy, fluz),
+                 Real(0.5)*dt, fr_as_crse, fr_as_fine, rk);
     // Sborder has the corrected solution for RK1 (no ghost cells)
     // Copy this into S_new MultiFab
     computeTemp(Sborder,0);
 
     MultiFab::Copy(S_new,Sborder,0,0,NUM_STATE,0);
     computeTemp(S_new,0);
+
+    // add reaction source terms (energy and mass fraction)
+    if(do_react == 1){
+        reaction_terms_subcycle(S_new, Sborder, 0.5*dt);
+    }
 
     // RK2, FCT step 1
     rk = 2;
@@ -113,9 +118,9 @@ CNS::advance (Real time, Real dt, int /*iteration*/, int /*ncycle*/)
 
     // RK step 2, FCT step 2
     // The corrected solution is stored in S_new
-    // FCT_corrected_solution(Soldtmp, Sborder, S_new, AMREX_D_DECL(Scx, Scy, Scz), 
-    //              AMREX_D_DECL(Sdx, Sdy, Sdz), AMREX_D_DECL(flux, fluy, fluz),
-    //              dt, fr_as_crse, fr_as_fine, rk);
+    FCT_corrected_solution(Soldtmp, Sborder, S_new, AMREX_D_DECL(Scx, Scy, Scz), 
+                 AMREX_D_DECL(Sdx, Sdy, Sdz), AMREX_D_DECL(flux, fluy, fluz),
+                 dt, fr_as_crse, fr_as_fine, rk);
     computeTemp(S_new,0);
     FillPatch(*this,S_new,NUM_GROW,time+dt,State_Type,0,NUM_STATE);
 
@@ -598,5 +603,49 @@ CNS::FCT_corrected_solution (const MultiFab& S_old, MultiFab& S, MultiFab& S_new
                              fr_as_fine->FineAdd(fluz, 2, 0, 0, conscomp, Real(1.0)););
         }        
     }    
+}
+
+void
+CNS::reaction_terms_subcycle(MultiFab& S_new, MultiFab& Sbord, Real dt)
+{
+    BL_PROFILE("CNS::reaction_terms_subcycle()");
+
+    const Box& domain = geom.Domain();
+    const auto dx = geom.CellSizeArray();
+    const auto dxinv = geom.InvCellSizeArray();
+    const int ncomp = NUM_STATE;
+
+    Real dtsub = dt / ((Real) react_nsubcycle);
+
+    EOSParm const* leosparm = d_eos_parm;
+
+    FArrayBox fltmp[BL_SPACEDIM], utmp, usrc;
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(S_new); mfi.isValid(); ++mfi){
+        const Box& bx = mfi.tilebox();
+
+        auto const& sfab = S_new.array(mfi);
+        auto const& sbfab  = Sbord.array(mfi);
+
+        int ngtmp = 3;
+        if(level > 0) ngtmp = NUM_GROW-1;
+
+        const int nsub = react_nsubcycle;
+
+        // ----------------------- Compute the reaction source terms ---------------------------------------------
+
+        // add reaction source terms to the low-order solution
+        if(react_do == 1){
+            amrex::ParallelFor(bxn3,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                fct_add_reaction_source(i, j, k, sfab, sbfab, dtsub, nsub, *leosparm);
+            });
+        }
+
+    }
+
 }
 
