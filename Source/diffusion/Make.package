@@ -1,1 +1,2 @@
 
+CEXE_headers += LRFPFCT_diffusion_$(DIM)D_K.H

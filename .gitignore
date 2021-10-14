@@ -9,4 +9,5 @@ Back*
 *.txt
 *.Outputs*/*
 pres*
-movie*
+*movie*
+*visit*

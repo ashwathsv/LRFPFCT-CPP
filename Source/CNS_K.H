@@ -16,7 +16,7 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
            int ng,
            Parm const& parm, EOSParm const& eos_parm,
-           amrex::Real pmax) noexcept
+           amrex::Real pmax, int react_do) noexcept
 {
     using amrex::Real;
 
@@ -42,7 +42,8 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
                 Real vx = mx*rhoinv;
                 Real vy = my*rhoinv;
                 Real p = state(i,j,k,UPRE);
-                Real cs = std::sqrt(eos_parm.eos_gamma*p*rhoinv)*(pmax/p);
+                Real cs = std::sqrt(eos_parm.eos_gamma*p*rhoinv);
+                if(parm.scaledt_pres == 1) cs = cs * (pmax/p);
                 Real dtx = dx[0]/(amrex::Math::abs(vx)+cs);
                 Real dty = dx[1]/(amrex::Math::abs(vy)+cs);
 #if AMREX_SPACEDIM==2
@@ -69,39 +70,45 @@ cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& 
 {
     using amrex::Real;
 
+    // Correction for negative densities
+    u(i,j,k,URHO) = amrex::max(parm.minro, u(i,j,k,URHO));
+    
+    // if(u(i,j,k,URHO) < parm.minro && parm.do_minp == 1){
+    //     u(i,j,k,URHO) = parm.minro;
+    //     u(i,j,k,UMX) = u(i,j,k,URHO)*ux;
+    //     u(i,j,k,UMY) = u(i,j,k,URHO)*uy;
+    // }
+
     Real ux = u(i,j,k,UMX)/u(i,j,k,URHO);
     Real uy = u(i,j,k,UMY)/u(i,j,k,URHO);
-
-    // Correction for negative densities
-    
-    if(u(i,j,k,URHO) < parm.minro && parm.do_minp == 1){
-        u(i,j,k,URHO) = parm.minro;
-        u(i,j,k,UMX) = u(i,j,k,URHO)*ux;
-        u(i,j,k,UMY) = u(i,j,k,URHO)*uy;
-    }
 
     Real rhoinv = Real(1.0)/u(i,j,k,URHO);
     Real mx = u(i,j,k,UMX);
     Real my = u(i,j,k,UMY);
 #if AMREX_SPACEDIM==2
     Real kineng = Real(0.5) * rhoinv * (mx*mx+my*my);
-    u(i,j,k,UEINT) = u(i,j,k,UEDEN) - Real(0.5) * rhoinv * (mx*mx+my*my);
+    u(i,j,k,UEINT) = u(i,j,k,UEDEN) - (Real(0.5) * rhoinv * (mx*mx+my*my));
 #else
     Real mz = u(i,j,k,UMZ);
     Real kineng = Real(0.5) * rhoinv * (mx*mx+my*my+mz*mz);
     u(i,j,k,UEINT) = u(i,j,k,UEDEN) - Real(0.5) * rhoinv * (mx*mx+my*my+mz*mz);
 #endif
-    u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (Real(1.0)/eos_parm.cv);
-    u(i,j,k,UPRE)  = (eos_parm.eos_gamma-1.0) * ( u(i,j,k,UEDEN) - kineng );
+    u(i,j,k,UPRE)  = amrex::max(parm.minp, (eos_parm.eos_gamma-1.0) * ( u(i,j,k,UEDEN) - kineng ));
+    // u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (Real(1.0)/eos_parm.cv);
+    u(i,j,k,UTEMP) = amrex::max(parm.minT, u(i,j,k,UPRE) / (eos_parm.Rsp * u(i,j,k,URHO)));
+
+#ifdef LRFPFCT_REACTION
+    u(i,j,k,URHOY) = amrex::max(0.0, amrex::min(u(i,j,k,URHOY), u(i,j,k,URHO)));
+#endif
 
     // Correction for negative pressures
 
-    if(u(i,j,k,UPRE) < parm.minp && parm.do_minp == 1){
-        u(i,j,k,UPRE)  = parm.minp;
-        u(i,j,k,UEINT) = u(i,j,k,UPRE)/(eos_parm.eos_gamma-Real(1.0));
-        u(i,j,k,UEDEN) = u(i,j,k,UEINT) + kineng; 
-        u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (Real(1.0)/eos_parm.cv);
-    }
+    // if(u(i,j,k,UPRE) < parm.minp && parm.do_minp == 1){
+    //     u(i,j,k,UPRE)  = parm.minp;
+    //     u(i,j,k,UEINT) = u(i,j,k,UPRE)/(eos_parm.eos_gamma-Real(1.0));
+    //     u(i,j,k,UEDEN) = u(i,j,k,UEINT) + kineng; 
+    //     u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (Real(1.0)/eos_parm.cv);
+    // }
 }
 
 AMREX_GPU_HOST_DEVICE

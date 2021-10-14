@@ -6,6 +6,7 @@
 #include <AMReX_FArrayBox.H>
 #include <cmath>
 
+#ifdef LRFPFCT_REACTION
 AMREX_GPU_DEVICE
 inline
 void
@@ -18,7 +19,7 @@ fct_react_convflux_x  (int i, int j, int k,
 
     Real ux = Real(0.5)*(ubord(i-1,j,k,UMX)/ubord(i-1,j,k,URHO) 
             + ubord(i,j,k,UMX)/ubord(i,j,k,URHO));
-    flcx(i,j,k,URHOY) = ux*Real(0.5)*(uold(i-1,j,k,URHOY) + uold(i,j,k,URHOY));
+    flcx(i,j,k,URHOY) = ux*Real(0.5)*(ubord(i-1,j,k,URHOY) + ubord(i,j,k,URHOY));
 }
 
 AMREX_GPU_DEVICE
@@ -33,7 +34,7 @@ fct_react_convflux_y (int i, int j, int k,
 
     Real uy = Real(0.5)*(ubord(i,j-1,k,UMY)/ubord(i,j-1,k,URHO) 
             + ubord(i,j,k,UMY)/ubord(i,j,k,URHO));
-    flcy(i,j,k,URHOY)  = uy*Real(0.5)*( uold(i,j-1,k,URHOY) + uold(i,j,k,URHOY) );
+    flcy(i,j,k,URHOY)  = uy*Real(0.5)*( ubord(i,j-1,k,URHOY) + ubord(i,j,k,URHOY) );
 }
 
 AMREX_GPU_DEVICE
@@ -48,7 +49,7 @@ fct_react_convflux_z (int i, int j, int k,
 
     Real uz = Real(0.5)*(ubord(i,j,k-1,UMZ)/ubord(i,j,k-1,URHO) 
             +            ubord(i,j,k,UMZ)/ubord(i,j,k,URHO));
-    flcz(i,j,k,URHOY)  = uz*Real(0.5)*( uold(i,j,k-1,URHOY) + uold(i,j,k,URHOY) );
+    flcz(i,j,k,URHOY)  = uz*Real(0.5)*( ubord(i,j,k-1,URHOY) + ubord(i,j,k,URHOY) );
 }
 
 AMREX_GPU_DEVICE
@@ -95,5 +96,6 @@ fct_add_reaction_source (int i, int j, int k,
     unew(i,j,k,UEDEN) = utemp(i,j,k,UEDEN);
     unew(i,j,k,URHOY) = utemp(i,j,k,URHOY);
 }
+#endif
 
 #endif

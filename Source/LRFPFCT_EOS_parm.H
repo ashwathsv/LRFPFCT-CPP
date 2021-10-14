@@ -23,26 +23,29 @@ struct EOSParm
     amrex::Real q_nd = 0.0;
     amrex::Real q_dim = 0.0;
 
-    // Specififying kappa_0 ( kappa = kappa_0 * T^(0.7) )
+    // Specififying kappa_0 ( kappa = kappa_0 * Cp * T^(0.7) )
     amrex::Real kappa_0 = 2.54e-5; // units in CGS
 
     // Specifying activation energy and Arrhenius pre-exponential
     amrex::Real Ea_nd = 1e10;
     amrex::Real Ea_dim = 1e20;
     amrex::Real pre_exp = 0.0;
+    amrex::Real temp_exp = 0.7;
 
     // This is the reference temperature used to dimensionalize the heat release and activation energy
     amrex::Real Tref = 298.0;
+    amrex::Real pref = 1.01325e5;
 
     amrex::Real cv;
     amrex::Real cp;
 
-    amrex::Real Pr  = 0.72;     // Prandtl number
+    amrex::Real Pr  = 1.0;     // Prandtl number
     amrex::Real Le  = 1.0;      // Lewis number
     amrex::Real C_S = 1.458e-5; // constant in Sutherland's law
     amrex::Real T_S = 110.4;    // Sutherland temperature
 
     void Initialize ();
+
 };
 
 #endif

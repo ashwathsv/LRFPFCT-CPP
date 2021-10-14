@@ -20,13 +20,20 @@ struct Parm
     amrex::Real smallr = 1.e-19;
     amrex::Real smallp = 1.e-10;
 
-    amrex::Real minro = 0.00001;
-    amrex::Real minp  = 1000.0;
+    amrex::Real minro = 1E-10;
+    amrex::Real minp  = 1.0;
+    amrex::Real minT  = 100; 
 
-    amrex::Real minrofrac = 1e-4;
-    amrex::Real minpfrac  = 1e-4;
+    // amrex::Real minrofrac = 1e-4;
+    // amrex::Real minpfrac  = 1e-4;
 
-    int do_minp = 0;
+    // int do_minp = 0;
+
+    int scaledt_pres = 0;
+
+#ifdef LRFPFCT_REACTION
+    amrex::Real start_sfoil_time = 0.0;
+#endif
     
     void Initialize ();
 };

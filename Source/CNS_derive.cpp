@@ -24,7 +24,7 @@ void cns_dermac (const Box& bx, FArrayBox& macfab, int dcomp, int /*ncomp*/,
 {
     auto const dat = datfab.array();
     auto       mac = macfab.array();
-    Parm const* parm = CNS::d_parm;
+    // Parm const* parm = CNS::d_parm;
     EOSParm const* eos_parm = CNS::d_eos_parm;
     amrex::ParallelFor(bx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -35,6 +35,7 @@ void cns_dermac (const Box& bx, FArrayBox& macfab, int dcomp, int /*ncomp*/,
     });
 }
 
+#ifdef LRFPFCT_REACTION
 void cns_dermassfrac (const Box& bx, FArrayBox& yfab, int dcomp, int /*ncomp*/,
                   const FArrayBox& datfab, const Geometry& /*geomdata*/,
                   Real /*time*/, const int* /*bcrec*/, int /*level*/)
@@ -48,3 +49,4 @@ void cns_dermassfrac (const Box& bx, FArrayBox& yfab, int dcomp, int /*ncomp*/,
         yarr(i,j,k,dcomp) = dat(i,j,k,1)/dat(i,j,k,0);
     });
 }
+#endif

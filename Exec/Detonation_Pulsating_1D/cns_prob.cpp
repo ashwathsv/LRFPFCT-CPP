@@ -25,8 +25,14 @@ extern "C" {
         pp.query("u0", CNS::h_prob_parm->u0);
 
 
-        pp.query("p1", CNS::h_prob_parm->p0);
+        pp.query("p1", CNS::h_prob_parm->p1);
         pp.query("p0", CNS::h_prob_parm->p0);
+
+        pp.get("pressure_file", CNS::h_prob_parm->pres_file);
+        pp.get("print_pres_data", CNS::h_prob_parm->print_pres_data);
+        pp.get("print_append", CNS::h_prob_parm->print_append);
+        pp.get("pres_int", CNS::h_prob_parm->pres_int);
+        pp.get("get_maxgrad", CNS::h_prob_parm->get_maxgrad);
 
 #ifdef AMREX_USE_GPU
         amrex::Gpu::htod_memcpy(CNS::d_prob_parm, CNS::h_prob_parm, sizeof(ProbParm));

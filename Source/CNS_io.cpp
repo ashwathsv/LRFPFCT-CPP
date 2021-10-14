@@ -10,6 +10,7 @@ CNS::restart (Amr& papa, std::istream& is, bool bReadSpecial)
 
     if (do_reflux && level > 0) {
         flux_reg.reset(new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE));
+        if(do_diff == 1) flux_reg_diff.reset(new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE));
     }
 
     buildMetrics();

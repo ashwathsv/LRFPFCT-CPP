@@ -130,31 +130,59 @@ protected:
 
     void computeTemp (amrex::MultiFab& State, int ng);
 
-    void FCT_low_order_solution (const amrex::MultiFab& S_old, amrex::MultiFab& S, amrex::MultiFab& S_new, 
-                   AMREX_D_DECL(amrex::MultiFab& Scx,  amrex::MultiFab& Scy,  amrex::MultiFab& Scz),
-                   AMREX_D_DECL(amrex::MultiFab& Sdx,  amrex::MultiFab& Sdy,  amrex::MultiFab& Sdz),
-                   AMREX_D_DECL(amrex::MultiFab& flux, amrex::MultiFab& fluy, amrex::MultiFab& fluz),
-                   Real dt, FluxRegister* fr_as_crse, FluxRegister* fr_as_fine, int rk);
+    // void FCT_low_order_solution (const amrex::MultiFab& S_old, amrex::MultiFab& S, amrex::MultiFab& S_new, 
+    //                AMREX_D_DECL(amrex::MultiFab& Scx,  amrex::MultiFab& Scy,  amrex::MultiFab& Scz),
+    //                AMREX_D_DECL(amrex::MultiFab& Sdx,  amrex::MultiFab& Sdy,  amrex::MultiFab& Sdz),
+    //                AMREX_D_DECL(amrex::MultiFab& flux, amrex::MultiFab& fluy, amrex::MultiFab& fluz),
+    //                Real dt, FluxRegister* fr_as_crse, FluxRegister* fr_as_fine, int rk);
 
-    void FCT_corrected_solution (const amrex::MultiFab& S_old, amrex::MultiFab& S, amrex::MultiFab& S_new, 
-                   AMREX_D_DECL(amrex::MultiFab& Scx,  amrex::MultiFab& Scy,  amrex::MultiFab& Scz),
-                   AMREX_D_DECL(amrex::MultiFab& Sdx,  amrex::MultiFab& Sdy,  amrex::MultiFab& Sdz),
-                   AMREX_D_DECL(amrex::MultiFab& flux, amrex::MultiFab& fluy, amrex::MultiFab& fluz),
-                   Real dt, FluxRegister* fr_as_crse, FluxRegister* fr_as_fine, int rk);
+    // void FCT_corrected_solution (const amrex::MultiFab& S_old, amrex::MultiFab& S, amrex::MultiFab& S_new, 
+    //                AMREX_D_DECL(amrex::MultiFab& Scx,  amrex::MultiFab& Scy,  amrex::MultiFab& Scz),
+    //                AMREX_D_DECL(amrex::MultiFab& Sdx,  amrex::MultiFab& Sdy,  amrex::MultiFab& Sdz),
+    //                AMREX_D_DECL(amrex::MultiFab& flux, amrex::MultiFab& fluy, amrex::MultiFab& fluz),
+    //                Real dt, FluxRegister* fr_as_crse, FluxRegister* fr_as_fine, int rk);
+
+    void compute_dSdt(const amrex::MultiFab& Sold, amrex::MultiFab& S, amrex::MultiFab& dSdt, 
+                      amrex::Real dt, amrex::Real dtvel,
+                      AMREX_D_DECL(amrex::MultiFab& flux, amrex::MultiFab& fluy, amrex::MultiFab& fluz),
+                      FluxRegister* fr_as_crse, FluxRegister* fr_as_fine, int rk);
+
+#ifdef LRFPFCT_REACTION
+    void get_soot_foil(const amrex::MultiFab& S_old, amrex::MultiFab& S_new);
+#endif
+
+    void add_physical_diffusion(const MultiFab& S_old, MultiFab& S, MultiFab& S_new, 
+                            AMREX_D_DECL(MultiFab& flux, MultiFab& fluy, MultiFab& fluz),
+                            Real dt, FluxRegister* fr_as_crse_diff, FluxRegister* fr_as_fine_diff, int rk);
 
     void printTotal () const;
 
     std::unique_ptr<amrex::FluxRegister> flux_reg;
+    std::unique_ptr<amrex::FluxRegister> flux_reg_diff;
 
     static constexpr int NUM_GROW = 4;
 #if AMREX_SPACEDIM==2
     enum StateVariable {
-        Density = 0, Xmom, Ymom, Eden, Mfrac, Eint, Temp, Pre,
+        Density = 0, Xmom, Ymom, Eden, 
+#ifdef LRFPFCT_REACTION
+        Mfrac, 
+#endif
+        Eint, Temp, Pre,
+#ifdef LRFPFCT_REACTION
+        sootfoil,
+#endif
         NUM_STATE
     };
 #else
     enum StateVariable {
-        Density = 0, Xmom, Ymom, Zmom, Eden, Mfrac, Eint, Temp, Pre,
+        Density = 0, Xmom, Ymom, Zmom, Eden, 
+#ifdef LRFPFCT_REACTION        
+        Mfrac,
+#endif 
+        Eint, Temp, Pre,
+#ifdef LRFPFCT_REACTION
+        sootfoil,
+#endif
         NUM_STATE
     };
 #endif
@@ -177,7 +205,17 @@ protected:
 
     static int do_reflux;
     static int do_react;
+    static int do_diff;
     static int react_nsubcycle;
+
+    static int do_fct_resdiff;
+    static int do_crossterms_ad;
+
+    static int do_heun;
+
+#ifdef LRFPFCT_REACTION
+    static int do_sootfoil;
+#endif
 
     static int refine_max_dengrad_lev;
     static amrex::Real refine_gradlim;

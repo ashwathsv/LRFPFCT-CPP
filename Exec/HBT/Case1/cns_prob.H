@@ -61,7 +61,6 @@ cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state,
         state(i,j,k,UEDEN) = et + Real(0.5)*prob_parm.rho_0*( prob_parm.u_0*prob_parm.u_0 
                            + prob_parm.v_0*prob_parm.v_0 );
         state(i,j,k,UTEMP) = state(i,j,k,UPRE)/(prob_parm.Rsp * state(i,j,k,URHO));
-        // state(i,j,k,UTEMP) = (Real(1.0)/state(i,j,k,URHO)) * state(i,j,k,UEINT) * (Real(1.0)/parm.cv);         
         state(i,j,k,URHOY) = Real(0.0);
 #if AMREX_SPACEDIM==3
         state(i,j,k,UMZ) = Real(0.0);
@@ -180,7 +179,7 @@ cns_probspecific_func (amrex::MultiFab& State, amrex::GeometryData const& geomda
 //         }
 //     }
 
-//     ParallelDescriptor::ReduceRealMin(minpre);
+    // ParallelDescriptor::ReduceRealMin(minpre);
 //     ParallelDescriptor::ReduceRealMax(maxpre);
 //     ParallelDescriptor::ReduceRealSum(meanpre);
 //     meanpre = meanpre/Ny;

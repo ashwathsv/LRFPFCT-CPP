@@ -1,7 +1,12 @@
 AMREX_HOME := $(HOME)/amrex-21.06
 TOP := $(HOME)/LRFPFCT-CPP
 
+ifeq ($(LRFPFCT_REACTION),1)
+EBASE := CNSreact
+DEFINES += -DLRFPFCT_REACTION
+else
 EBASE := CNS
+endif
 
 DIM := 2
 

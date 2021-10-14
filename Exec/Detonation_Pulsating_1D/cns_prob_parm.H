@@ -17,6 +17,13 @@ struct ProbParm
     amrex::Real T0 = 298; 
     amrex::Real Y1 = 1.0;
     amrex::Real Y0 = 0.0;
+
+    std::string pres_file = "pressuredata.txt";
+    int print_pres_data = 0;
+    int print_append = 0;
+    int pres_int = 10;
+    int get_maxgrad = 0;
+    amrex::Real old_shock_loc = 0.0;
 };
 
 #endif

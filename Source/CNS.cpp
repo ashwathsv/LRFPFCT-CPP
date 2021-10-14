@@ -29,7 +29,14 @@ Real      CNS::tagfrac                  = 0.0;
 Real      CNS::gravity                  = 0.0;
 Real      CNS::diff1                    = 1.0;
 int       CNS::do_react                 = 0;
+int       CNS::do_diff                  = 0;
+int       CNS::do_fct_resdiff           = 1;
+int       CNS::do_crossterms_ad         = 0;
+#ifdef LRFPFCT_REACTION
 int       CNS::react_nsubcycle          = 1;
+int       CNS::do_sootfoil              = 0;
+#endif
+int       CNS::do_heun                  = 0;
 
 CNS::CNS ()
 {}
@@ -44,6 +51,7 @@ CNS::CNS (Amr&            papa,
 {
     if (do_reflux && level > 0) {
         flux_reg.reset(new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE));
+        flux_reg_diff.reset(new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE));
     }
 
     buildMetrics();
@@ -117,13 +125,12 @@ CNS::initData ()
 
     FillPatch(*this,S_new,NUM_GROW,0.0,State_Type,0,NUM_STATE);
 
+    Print() << "completed FillPatch after initData() \n";
+
     if(level == 0){
         ProbParm* lpparm = d_prob_parm;
-        cns_probspecific_func(S_new, geomdata, *lpparm, 0, 0.0);
-        if(h_parm->do_minp == 1){
-            h_parm->minro = h_parm->minrofrac*S_new.min(URHO);
-            h_parm->minp  = h_parm->minpfrac*S_new.min(UPRE);
-        }
+        cns_probspecific_func(S_new, geomdata, *lpparm, 0, 0.0, 0.0);
+
         amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_parm, h_parm+1, d_parm);
     }
     Print() << "max(pre) = " << S_new.max(UPRE,NUM_GROW) << ", max(rho) = " << S_new.max(URHO,NUM_GROW) << "\n";
@@ -264,9 +271,10 @@ CNS::post_timestep (int iteration)
 
         CNS& fine_level = getLevel(level+1);
         int conscomp = CCOMP;
-        if(do_react == 1) conscomp = conscomp + 1;
 
         fine_level.flux_reg->Reflux(S, Real(1.0), 0, 0, conscomp, geom);
+
+        if(do_diff == 1) fine_level.flux_reg_diff->Reflux(S, Real(1.0), 0, 0, conscomp, geom);
         computeTemp(S,0);
 
         if(S.min(UEDEN,0) < 0.0 || S.min(URHO,0) < 0.0 || S.min(UPRE,0) < 0.0){
@@ -288,10 +296,12 @@ CNS::postCoarseTimeStep (Real time)
     BL_PROFILE("postCoarseTimeStep()");
 
     if(level == 0){
+        Real dt        = parent->dtLevel(level);
+        // Real cur_time  = getLevel(level-1).state[State_Type].curTime();
         MultiFab& S = get_new_data(State_Type);
         ProbParm* lpparm = d_prob_parm;
         const auto geomdata = geom.data();
-        cns_probspecific_func(S, geomdata, *lpparm, 1, time);
+        cns_probspecific_func(S, geomdata, *lpparm, 1, time, dt);
     }
 
     // This only computes sum on level 0
@@ -305,28 +315,28 @@ CNS::printTotal () const
 {
     const MultiFab& S_new = get_new_data(State_Type);
 
-    std::array<Real,CCOMP+1> tot;
-    for (int comp = URHO; comp <= URHOY; ++comp) {
-        tot[comp] = S_new.sum(comp,true) * geom.ProbSize();
-    }
+    // std::array<Real,CCOMP+1> tot;
+    // for (int comp = URHO; comp <= URHOY; ++comp) {
+    //     tot[comp] = S_new.sum(comp,true) * geom.ProbSize();
+    // }
     Real romin = S_new.min(URHO,0);
     Real pmin  = S_new.min(UPRE,0);
 #ifdef BL_LAZY
     Lazy::QueueReduction( [=] () mutable {
 #endif
-            ParallelDescriptor::ReduceRealSum(tot.data(), CCOMP+1, ParallelDescriptor::IOProcessorNumber());
+            // ParallelDescriptor::ReduceRealSum(tot.data(), CCOMP+1, ParallelDescriptor::IOProcessorNumber());
             ParallelDescriptor::ReduceRealMin(romin, ParallelDescriptor::IOProcessorNumber());
             ParallelDescriptor::ReduceRealMin(pmin, ParallelDescriptor::IOProcessorNumber());
-            amrex::Print().SetPrecision(17) << "\n[CNS] Total mass          is " << tot[URHO] << "\n"
-                                            <<   "      Total x-momentum    is " << tot[UMX] << "\n"
-                                            <<   "      Total y-momentum    is " << tot[UMY] << "\n"
+            // amrex::Print().SetPrecision(17) << "\n[CNS] Total mass          is " << tot[URHO] << "\n"
+            //                                 <<   "      Total x-momentum    is " << tot[UMX] << "\n"
+            //                                 <<   "      Total y-momentum    is " << tot[UMY] << "\n"
 #if AMREX_SPACEDIM==3
-                                            <<   "      Total z-momentum    is " << tot[UMZ] << "\n"
+                                            // <<   "      Total z-momentum    is " << tot[UMZ] << "\n"
 #endif
-                                            <<   "      Total energy        is " << tot[UEDEN] << "\n"
-                                            <<   "      Total mass fraction is " << tot[URHOY] << "\n"
-                                            <<   "      Minimum density     is  " << romin << "\n"
-                                            <<   "      Minimum pressure    is  "<< pmin << "\n";
+                                            // <<   "      Total energy        is " << tot[UEDEN] << "\n"
+                                            // <<   "      Total mass fraction is " << tot[URHOY] << "\n"
+            amrex::Print().SetPrecision(17) <<   "\n[CNS]  Minimum density     is  " << romin << "\n"
+                                            <<   "         Minimum pressure    is  " << pmin << "\n";
 #ifdef BL_LAZY
         });
 #endif
@@ -465,9 +475,17 @@ CNS::read_params ()
 
     pp.query("do_reflux", do_reflux);
     pp.query("do_react", do_react);
+    pp.query("do_fct_resdiff", do_fct_resdiff);
+    pp.query("do_heun", do_heun);
+    if(do_fct_resdiff==0) pp.query("do_crossterms_ad", do_crossterms_ad);
+
+#ifdef LRFPFCT_REACTION
     if(do_react == 1){
         pp.get("react_nsubcycle", react_nsubcycle);
     }
+    pp.query("do_sootfoil", do_sootfoil);
+#endif
+    pp.query("do_diff", do_diff);
     
 
     pp.query("refine_max_dengrad_lev", refine_max_dengrad_lev);
@@ -480,17 +498,27 @@ CNS::read_params ()
     }
 
     pp.query("gravity", gravity);
+    pp.query("scaledt_pres", h_parm->scaledt_pres);
+    // Query for minp, minro, min Temperature
+    pp.query("minp",  h_parm->minp);
+    pp.query("minro", h_parm->minro);
+    pp.query("minT",  h_parm->minT);
 
-    // pp.query("eos_gamma", h_parm->eos_gamma);
+    // Get the time to start sootfoil measurements
+#ifdef LRFPFCT_REACTION
+    pp.get("start_sfoil_time", h_parm->start_sfoil_time);
+#endif
+
     // do_minp == 1 implies we set a minimum pressure and do not allow pressure/density to go negative 
     // allows for using high cfl number but may reduce accuracy / result in few points with non-physical pressures
-    pp.query("do_minp", h_parm->do_minp);
-    if(h_parm->do_minp == 1) {
-        // read in the fractions for minimum pressure and density (these fractions are related to the minimum 
-        // pressure in the initial conditions at the coarsest level)
-        pp.query("minpfrac", h_parm->minpfrac);
-        pp.query("minrofrac", h_parm->minrofrac);
-    }
+    // pp.query("do_minp", h_parm->do_minp);
+    
+    // if(h_parm->do_minp == 1) {
+    //     // read in the fractions for minimum pressure and density (these fractions are related to the minimum 
+    //     // pressure in the initial conditions at the coarsest level)
+    //     pp.query("minpfrac", h_parm->minpfrac);
+    //     pp.query("minrofrac", h_parm->minrofrac);
+    // }
 
     h_parm->Initialize();
     amrex::Gpu::copy(amrex::Gpu::hostToDevice, h_parm, h_parm+1, d_parm);
@@ -509,6 +537,7 @@ CNS::read_eos_params (int do_react)
     pp.query("molecular_weight", h_eos_parm->eos_mu);
     h_eos_parm->eos_mu = h_eos_parm->eos_mu*1e-3;
 
+#ifdef LRFPFCT_REACTION
     // read in heat release q (non-dimensional, as q * Mw / (R * T_0) )
     if(do_react == 1){
         pp.query("heat_release", h_eos_parm->q_nd);
@@ -520,6 +549,13 @@ CNS::read_eos_params (int do_react)
         // Convert Arrhenius pre-exponential and thermal conductivity to SI units
         h_eos_parm->pre_exp = h_eos_parm->pre_exp * 1e-3;
         h_eos_parm->kappa_0 = h_eos_parm->kappa_0 * 1e-1;
+    }
+#endif
+
+    if(do_diff == 1){
+        pp.query("temperature_exponent", h_eos_parm->temp_exp);
+        pp.query("Lewis_number", h_eos_parm->Le);
+        pp.query("Prandtl_number", h_eos_parm->Pr);
     }
 
     h_eos_parm->Initialize();
@@ -548,7 +584,7 @@ CNS::avgDown ()
     MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
     int conscomp = CCOMP;
-    if(do_react == 1) conscomp = conscomp + 1;
+    // if(do_react == 1) conscomp = conscomp + 1;
 
     amrex::average_down(S_fine, S_crse, fine_lev.geom, geom,
                         0, conscomp, parent->refRatio(level));
@@ -576,6 +612,7 @@ CNS::estTimeStep (int ng)
     const auto dx = geom.CellSizeArray();
     const MultiFab& S = get_new_data(State_Type);
     const int ngrow = ng;
+    const int react_do = do_react;
 
     Parm const* lparm = d_parm;
     EOSParm const* leosparm = d_eos_parm;
@@ -583,13 +620,13 @@ CNS::estTimeStep (int ng)
     prefetchToDevice(S);
 #endif
 
-    Real pmax  = S_new.max(UPRE,0);
+    Real pmax  = S.max(UPRE,0);
     ParallelDescriptor::ReduceRealMax(pmax, ParallelDescriptor::IOProcessorNumber());
     
     Real estdt = amrex::ReduceMin(S, 0,
     [=] AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& fab) -> Real
     {
-        return cns_estdt(bx, fab, dx, ngrow, *lparm, *leosparm, pmax);
+        return cns_estdt(bx, fab, dx, ngrow, *lparm, *leosparm, pmax, react_do);
     });
 
     estdt *= cfl;
